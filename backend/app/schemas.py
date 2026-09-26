@@ -1,8 +1,9 @@
-from datetime import date
-from typing import Literal
+from datetime import date, datetime, timedelta
+from typing import Literal, Self
+from uuid import UUID
 from zoneinfo import available_timezones
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AwareDatetime, BaseModel, Field, field_validator, model_validator
 
 OPTIONAL_SCALE_FIELDS: tuple[str, ...] = (
     "body_fat_pct",
@@ -53,3 +54,46 @@ class ProfileIn(BaseModel):
 
 class ProfileOut(ProfileIn):
     pass
+
+
+FUTURE_SLACK = timedelta(minutes=10)
+
+
+def validate_not_future(value: datetime, now: datetime) -> None:
+    """Raise ValueError if `value` is in the future (with a small clock-skew allowance)."""
+    if value > now + FUTURE_SLACK:
+        raise ValueError("Date can't be in the future")
+
+
+class BodyEntryBase(BaseModel):
+    body_fat_pct: float | None = Field(default=None, ge=2, le=70)
+    muscle_mass_kg: float | None = Field(default=None, ge=5, le=200)
+    skeletal_muscle_pct: float | None = Field(default=None, ge=5, le=80)
+    body_water_pct: float | None = Field(default=None, ge=20, le=80)
+    bone_mass_kg: float | None = Field(default=None, ge=0.5, le=10)
+    visceral_fat: float | None = Field(default=None, ge=1, le=60)
+    protein_pct: float | None = Field(default=None, ge=5, le=30)
+    bmr_kcal: int | None = Field(default=None, ge=500, le=5000)
+    metabolic_age: int | None = Field(default=None, ge=10, le=100)
+    note: str | None = Field(default=None, max_length=500)
+
+
+class BodyEntryIn(BodyEntryBase):
+    measured_at: AwareDatetime
+    weight_kg: float = Field(ge=20, le=400)
+
+
+class BodyEntryPatch(BodyEntryBase):
+    measured_at: AwareDatetime | None = None
+    weight_kg: float | None = Field(default=None, ge=20, le=400)
+
+    @model_validator(mode="after")
+    def _required_not_null(self) -> Self:
+        for name in ("measured_at", "weight_kg"):
+            if name in self.model_fields_set and getattr(self, name) is None:
+                raise ValueError(f"{name} can't be empty")
+        return self
+
+
+class BodyEntryOut(BodyEntryIn):
+    id: UUID
