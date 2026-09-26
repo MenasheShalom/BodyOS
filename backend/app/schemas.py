@@ -261,3 +261,26 @@ class PhotoOut(BaseModel):
     pose: Pose
     note: str | None
     url: str
+
+
+class MetricSummaryOut(BaseModel):
+    metric: str
+    label: str
+    unit: str
+    latest: float | None
+    change_30d: float | None
+    goal_direction: Literal["up", "down"] | None
+    sparkline: list[PointOut]
+
+
+class NudgesOut(BaseModel):
+    days_since_weigh_in: int | None
+    days_since_photo: int | None
+
+
+class DashboardOut(BaseModel):
+    hero: list[MetricSummaryOut]
+    cards: list[MetricSummaryOut]
+    secondary: list[MetricSummaryOut]
+    goals: list[GoalOut]
+    nudges: NudgesOut
