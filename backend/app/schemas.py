@@ -97,3 +97,52 @@ class BodyEntryPatch(BodyEntryBase):
 
 class BodyEntryOut(BodyEntryIn):
     id: UUID
+
+
+MEASUREMENT_FIELDS: tuple[str, ...] = (
+    "waist_cm",
+    "hips_cm",
+    "chest_cm",
+    "neck_cm",
+    "arm_cm",
+    "thigh_cm",
+)
+
+
+class MeasurementBase(BaseModel):
+    waist_cm: float | None = Field(default=None, ge=10, le=250)
+    hips_cm: float | None = Field(default=None, ge=10, le=250)
+    chest_cm: float | None = Field(default=None, ge=10, le=250)
+    neck_cm: float | None = Field(default=None, ge=10, le=250)
+    arm_cm: float | None = Field(default=None, ge=10, le=250)
+    thigh_cm: float | None = Field(default=None, ge=10, le=250)
+    note: str | None = Field(default=None, max_length=500)
+
+
+class MeasurementIn(MeasurementBase):
+    measured_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def _at_least_one(self) -> Self:
+        if all(getattr(self, f) is None for f in MEASUREMENT_FIELDS):
+            raise ValueError("Enter at least one measurement")
+        return self
+
+
+class MeasurementPatch(MeasurementBase):
+    measured_at: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def _measured_at_not_null(self) -> Self:
+        if "measured_at" in self.model_fields_set and self.measured_at is None:
+            raise ValueError("measured_at can't be empty")
+        return self
+
+
+class MeasurementOut(MeasurementIn):
+    id: UUID
+    navy_body_fat_pct: float | None = None
+
+
+class NavyPreview(BaseModel):
+    navy_body_fat_pct: float | None
