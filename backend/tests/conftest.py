@@ -1,10 +1,19 @@
 import os
 import pathlib
+import time
 import uuid
 from collections.abc import Callable, Iterator
+from datetime import UTC, datetime
+from typing import Any
 
+import jwt
 import psycopg
 import pytest
+from fastapi.testclient import TestClient
+
+from app.clock import get_now
+from app.config import Settings, get_settings
+from app.main import create_app
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MIGRATIONS = sorted((ROOT / "supabase" / "migrations").glob("*.sql"))
@@ -47,3 +56,49 @@ def make_user(db: str) -> Callable[[], uuid.UUID]:
         return user_id
 
     return _make
+
+
+JWT_SECRET = "test-secret-with-at-least-32-characters!!"
+FIXED_NOW = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
+
+
+def make_token(user_id: uuid.UUID, *, expires_in: int = 3600, secret: str = JWT_SECRET) -> str:
+    now = int(time.time())
+    claims: dict[str, Any] = {
+        "sub": str(user_id),
+        "aud": "authenticated",
+        "role": "authenticated",
+        "iat": now,
+        "exp": now + expires_in,
+    }
+    return jwt.encode(claims, secret, algorithm="HS256")
+
+
+def auth_for(user_id: uuid.UUID) -> dict[str, str]:
+    return {"Authorization": f"Bearer {make_token(user_id)}"}
+
+
+@pytest.fixture
+def app_under_test(db: str) -> Any:
+    app = create_app()
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        database_url=db, supabase_jwt_secret=JWT_SECRET
+    )
+    app.dependency_overrides[get_now] = lambda: FIXED_NOW
+    return app
+
+
+@pytest.fixture
+def client(app_under_test: Any) -> Iterator[TestClient]:
+    with TestClient(app_under_test) as c:
+        yield c
+
+
+@pytest.fixture
+def user(make_user: Callable[[], uuid.UUID]) -> uuid.UUID:
+    return make_user()
+
+
+@pytest.fixture
+def headers(user: uuid.UUID) -> dict[str, str]:
+    return auth_for(user)
