@@ -30,7 +30,7 @@ def list_entries(
     start: datetime | None = Query(default=None, alias="from"),
     end: datetime | None = Query(default=None, alias="to"),
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
 ) -> list[dict[str, Any]]:
     return list_rows(conn, "body_entries", user_id, "measured_at", start, end)
 
@@ -39,7 +39,7 @@ def list_entries(
 def create_entry(
     body: BodyEntryIn,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
     now: datetime = Depends(get_now),
 ) -> dict[str, Any]:
     check_not_future("measured_at", body.measured_at, now)
@@ -51,7 +51,7 @@ def update_entry(
     entry_id: UUID,
     body: BodyEntryPatch,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
     now: datetime = Depends(get_now),
 ) -> dict[str, Any]:
     check_not_future("measured_at", body.measured_at, now)
@@ -63,7 +63,7 @@ def update_entry(
 def delete_entry(
     entry_id: UUID,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
 ) -> Response:
     if not delete_row(conn, "body_entries", user_id, entry_id):
         raise HTTPException(status_code=404, detail="Not found")

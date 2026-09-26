@@ -13,7 +13,7 @@ router = APIRouter(prefix="/me", tags=["profile"])
 
 @router.get("/profile", response_model=ProfileOut)
 def get_profile(
-    user_id: UUID = Depends(current_user_id), conn: Conn = Depends(get_conn)
+    user_id: UUID = Depends(current_user_id), conn: Conn = Depends(get_conn, scope="function")
 ) -> ProfileOut:
     profile = load_profile(conn, user_id)
     if profile is None:
@@ -25,7 +25,7 @@ def get_profile(
 def put_profile(
     body: ProfileIn,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
 ) -> ProfileOut:
     conn.execute(
         """

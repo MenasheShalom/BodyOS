@@ -44,7 +44,7 @@ def navy_preview(
     neck_cm: float = Query(ge=10, le=250),
     hips_cm: float | None = Query(default=None, ge=10, le=250),
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
 ) -> NavyPreview:
     row = {"waist_cm": waist_cm, "neck_cm": neck_cm, "hips_cm": hips_cm}
     return NavyPreview(navy_body_fat_pct=navy_for(row, load_profile(conn, user_id)))
@@ -55,7 +55,7 @@ def list_measurements(
     start: datetime | None = Query(default=None, alias="from"),
     end: datetime | None = Query(default=None, alias="to"),
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
 ) -> list[dict[str, Any]]:
     profile = load_profile(conn, user_id)
     rows = list_rows(conn, "measurements", user_id, "measured_at", start, end)
@@ -66,7 +66,7 @@ def list_measurements(
 def create_measurement(
     body: MeasurementIn,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
     now: datetime = Depends(get_now),
 ) -> dict[str, Any]:
     check_not_future("measured_at", body.measured_at, now)
@@ -79,7 +79,7 @@ def update_measurement(
     measurement_id: UUID,
     body: MeasurementPatch,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
     now: datetime = Depends(get_now),
 ) -> dict[str, Any]:
     check_not_future("measured_at", body.measured_at, now)
@@ -96,7 +96,7 @@ def update_measurement(
 def delete_measurement(
     measurement_id: UUID,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
 ) -> Response:
     if not delete_row(conn, "measurements", user_id, measurement_id):
         raise HTTPException(status_code=404, detail="Not found")

@@ -19,7 +19,7 @@ def get_series(
     metric: str,
     range_key: RangeKey = Query(default="3M", alias="range"),
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
     now: datetime = Depends(get_now),
 ) -> SeriesOut:
     if metric not in METRICS:

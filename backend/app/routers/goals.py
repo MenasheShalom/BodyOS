@@ -27,7 +27,7 @@ def _conflict(metric: str | None = None) -> HTTPException:
 def list_goals(
     status: GoalStatus | None = None,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
     now: datetime = Depends(get_now),
 ) -> list[dict[str, Any]]:
     profile = load_profile(conn, user_id)
@@ -41,7 +41,7 @@ def list_goals(
 def create_goal(
     body: GoalIn,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
     now: datetime = Depends(get_now),
 ) -> dict[str, Any]:
     profile = load_profile(conn, user_id)
@@ -72,7 +72,7 @@ def update_goal(
     goal_id: UUID,
     body: GoalPatch,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
     now: datetime = Depends(get_now),
 ) -> dict[str, Any]:
     profile = load_profile(conn, user_id)
@@ -87,7 +87,7 @@ def update_goal(
 def delete_goal(
     goal_id: UUID,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
 ) -> Response:
     if not delete_row(conn, "goals", user_id, goal_id):
         raise HTTPException(status_code=404, detail="Not found")

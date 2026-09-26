@@ -34,7 +34,7 @@ def create_upload_url(
 def register_photo(
     body: PhotoIn,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
     storage: PhotoStorage = Depends(get_storage),
     now: datetime = Depends(get_now),
 ) -> dict[str, Any]:
@@ -62,7 +62,7 @@ def register_photo(
 def list_photos(
     pose: Pose | None = None,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
     storage: PhotoStorage = Depends(get_storage),
 ) -> list[dict[str, Any]]:
     filters = {"pose": pose} if pose else None
@@ -75,7 +75,7 @@ def list_photos(
 def delete_photo(
     photo_id: UUID,
     user_id: UUID = Depends(current_user_id),
-    conn: Conn = Depends(get_conn),
+    conn: Conn = Depends(get_conn, scope="function"),
     storage: PhotoStorage = Depends(get_storage),
 ) -> Response:
     row = require(get_row(conn, "progress_photos", user_id, photo_id))
