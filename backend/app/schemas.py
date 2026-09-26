@@ -5,6 +5,8 @@ from zoneinfo import available_timezones
 
 from pydantic import AwareDatetime, BaseModel, Field, field_validator, model_validator
 
+from app.calculations.goals import ProjectionState
+
 if TYPE_CHECKING:
     from app.services.series_service import SeriesResult
 
@@ -186,3 +188,52 @@ def series_out(result: "SeriesResult") -> SeriesOut:
         max=_r(result.max),
         latest=_r(result.latest),
     )
+
+
+GoalMetric = Literal[
+    "weight_kg",
+    "body_fat_pct",
+    "muscle_mass_kg",
+    "fat_mass_kg",
+    "lean_mass_kg",
+    "waist_cm",
+    "navy_body_fat_pct",
+]
+GoalStatus = Literal["active", "achieved", "archived"]
+
+
+class GoalIn(BaseModel):
+    metric: GoalMetric
+    target_value: float = Field(gt=0, le=10000)
+    target_date: date | None = None
+
+
+class GoalPatch(BaseModel):
+    target_value: float | None = Field(default=None, gt=0, le=10000)
+    target_date: date | None = None
+    status: GoalStatus | None = None
+
+    @model_validator(mode="after")
+    def _required_not_null(self) -> Self:
+        for name in ("target_value", "status"):
+            if name in self.model_fields_set and getattr(self, name) is None:
+                raise ValueError(f"{name} can't be empty")
+        return self
+
+
+class ProjectionOut(BaseModel):
+    current: float | None
+    progress_pct: float | None
+    state: ProjectionState
+    projected_date: date | None
+
+
+class GoalOut(BaseModel):
+    id: UUID
+    metric: GoalMetric
+    start_value: float
+    target_value: float
+    start_date: date
+    target_date: date | None
+    status: GoalStatus
+    projection: ProjectionOut
