@@ -9,6 +9,7 @@ import { PhotoCompare } from "./pages/PhotoCompare";
 import { Photos } from "./pages/Photos";
 import { Settings } from "./pages/Settings";
 import { SignIn } from "./pages/SignIn";
+import { Trends } from "./pages/Trends";
 
 export function App() {
   return (
@@ -24,6 +25,7 @@ export function App() {
           }
         >
           <Route index element={<Home />} />
+          <Route path="trends" element={<Trends />} />
           <Route path="more" element={<More />} />
           <Route path="photos" element={<Photos />} />
           <Route path="photos/compare" element={<PhotoCompare />} />
