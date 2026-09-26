@@ -16,10 +16,12 @@ type FormOut = z.output<typeof schema>;
 
 type Props = {
   availableMetrics: { key: GoalMetric; label: string; unit: string }[];
+  /** Editing an existing goal: the metric is fixed, only target and date change. */
+  initial?: GoalInput;
   onSubmit: (input: GoalInput) => Promise<void>;
 };
 
-export function GoalForm({ availableMetrics, onSubmit }: Props) {
+export function GoalForm({ availableMetrics, initial, onSubmit }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const {
     register,
@@ -30,12 +32,16 @@ export function GoalForm({ availableMetrics, onSubmit }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<FormIn, unknown, FormOut>({
     resolver: zodResolver(schema),
-    defaultValues: { metric: "", target_value: "", target_date: "" },
+    defaultValues: {
+      metric: initial?.metric ?? "",
+      target_value: initial ? String(initial.target_value) : "",
+      target_date: initial?.target_date ?? "",
+    },
   });
   const metric = useWatch({ control, name: "metric" });
-  const unit = availableMetrics.find((m) => m.key === metric)?.unit;
+  const unit = availableMetrics.find((m) => m.key === (initial?.metric ?? metric))?.unit;
 
-  if (availableMetrics.length === 0) {
+  if (!initial && availableMetrics.length === 0) {
     return <p className="text-sm text-muted">Every goal metric already has an active goal.</p>;
   }
 
@@ -43,11 +49,12 @@ export function GoalForm({ availableMetrics, onSubmit }: Props) {
     setFormError(null);
     try {
       await onSubmit({
-        metric: v.metric as GoalMetric,
+        // A disabled select isn't submitted, so editing keeps the original metric.
+        metric: initial?.metric ?? (v.metric as GoalMetric),
         target_value: v.target_value,
         target_date: v.target_date || null,
       });
-      reset();
+      if (!initial) reset();
     } catch (error) {
       setFormError(applyServerErrors(error, setError, ["metric", "target_value", "target_date"]));
     }
@@ -58,7 +65,8 @@ export function GoalForm({ availableMetrics, onSubmit }: Props) {
       <label className="block text-sm">
         <span className="mb-1 block text-muted">Metric</span>
         <select
-          className="w-full rounded-xl border border-border bg-surface px-3 py-2.5"
+          className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 disabled:opacity-70"
+          disabled={!!initial}
           {...register("metric")}
         >
           <option value="">Choose…</option>
@@ -97,7 +105,7 @@ export function GoalForm({ availableMetrics, onSubmit }: Props) {
         disabled={isSubmitting}
         className="w-full rounded-xl bg-accent py-2.5 font-medium text-bg disabled:opacity-60"
       >
-        Add goal
+        {initial ? "Save goal" : "Add goal"}
       </button>
     </form>
   );

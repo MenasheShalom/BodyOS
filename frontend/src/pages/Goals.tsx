@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { EmptyState, ErrorState, Spinner } from "../components/EmptyState";
 import { GoalProgress } from "../components/GoalProgress";
+import { Modal } from "../components/Modal";
 import { GoalForm } from "../forms/GoalForm";
 import { formatValue } from "../lib/format";
 import { GOAL_METRICS, metricInfo } from "../lib/metrics";
 import { goals } from "../lib/queries";
+import type { Goal } from "../lib/types";
 
 const btn = "rounded-lg bg-surface px-2.5 py-1 text-xs";
 const STATUS_LABEL = { active: "Active", achieved: "Achieved", archived: "Archived" } as const;
 
 export function Goals() {
+  const [editing, setEditing] = useState<Goal | null>(null);
   const list = goals.useList();
   const create = goals.useCreate();
   const update = goals.useUpdate();
@@ -44,6 +48,9 @@ export function Goals() {
           <div key={g.id} className="space-y-2">
             <GoalProgress goal={g} />
             <div className="flex gap-2">
+              <button type="button" className={btn} onClick={() => setEditing(g)}>
+                Edit
+              </button>
               <button
                 type="button"
                 className={btn}
@@ -65,6 +72,23 @@ export function Goals() {
           </div>
         ))}
       </div>
+
+      {editing && (
+        <Modal title="Edit goal" onClose={() => setEditing(null)}>
+          <GoalForm
+            availableMetrics={GOAL_METRICS}
+            initial={{
+              metric: editing.metric,
+              target_value: editing.target_value,
+              target_date: editing.target_date,
+            }}
+            onSubmit={async ({ target_value, target_date }) => {
+              await update.mutateAsync({ id: editing.id, body: { target_value, target_date } });
+              setEditing(null);
+            }}
+          />
+        </Modal>
+      )}
 
       {past.length > 0 && (
         <div className="space-y-2">

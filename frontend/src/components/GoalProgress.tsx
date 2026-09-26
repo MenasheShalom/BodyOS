@@ -40,6 +40,7 @@ export function GoalProgress({ goal }: { goal: Goal }) {
       </div>
       <p className="mt-2 text-sm text-muted">
         {Math.round(pct)}% of the way. {goalStatusText(goal)}
+        {goal.target_date && `. Target date ${formatDay(goal.target_date)}`}
       </p>
     </div>
   );
