@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 from app.clock import get_now
 from app.config import Settings, get_settings
 from app.main import create_app
+from app.storage import get_storage
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MIGRATIONS = sorted((ROOT / "supabase" / "migrations").glob("*.sql"))
@@ -102,3 +103,29 @@ def user(make_user: Callable[[], uuid.UUID]) -> uuid.UUID:
 @pytest.fixture
 def headers(user: uuid.UUID) -> dict[str, str]:
     return auth_for(user)
+
+
+class FakeStorage:
+    def __init__(self) -> None:
+        self.objects: set[str] = set()
+        self.deleted: list[str] = []
+
+    def create_upload(self, path: str) -> str:
+        return f"token-for-{path}"
+
+    def signed_urls(self, paths: list[str], expires_in: int = 3600) -> dict[str, str]:
+        return {p: f"https://storage.test/{p}?sig=1" for p in paths}
+
+    def exists(self, path: str) -> bool:
+        return path in self.objects
+
+    def delete(self, path: str) -> None:
+        self.objects.discard(path)
+        self.deleted.append(path)
+
+
+@pytest.fixture
+def storage(app_under_test: Any) -> FakeStorage:
+    fake = FakeStorage()
+    app_under_test.dependency_overrides[get_storage] = lambda: fake
+    return fake

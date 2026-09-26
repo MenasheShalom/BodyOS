@@ -237,3 +237,27 @@ class GoalOut(BaseModel):
     target_date: date | None
     status: GoalStatus
     projection: ProjectionOut
+
+
+Pose = Literal["front", "side", "back"]
+
+
+class UploadUrlOut(BaseModel):
+    photo_id: UUID
+    path: str
+    token: str
+
+
+class PhotoIn(BaseModel):
+    photo_id: UUID
+    taken_at: AwareDatetime
+    pose: Pose
+    note: str | None = Field(default=None, max_length=500)
+
+
+class PhotoOut(BaseModel):
+    id: UUID
+    taken_at: datetime
+    pose: Pose
+    note: str | None
+    url: str
