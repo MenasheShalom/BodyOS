@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/* Cool, clinical palette: mist background, navy ink, petrol accent.
+   Series colours: ochre for fat, cobalt for lean. */
+@theme {
+  --color-bg: #eef2f4;
+  --color-surface: #ffffff;
+  --color-surface-2: #e3e9ec;
+  --color-border: #cbd5da;
+  --color-text: #17222b;
+  --color-muted: #5e6e78;
+  --color-accent: #0f6e6a;
+  --color-good: #1f7a4f;
+  --color-bad: #b8433a;
+  --color-series-1: #b7791f;
+  --color-series-2: #2d6cb5;
+  --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #10171d;
+    --color-surface: #18222a;
+    --color-surface-2: #213039;
+    --color-border: #2f414c;
+    --color-text: #e6edf1;
+    --color-muted: #93a4ae;
+    --color-accent: #5cc2b8;
+    --color-good: #5cc28c;
+    --color-bad: #ef7b70;
+    --color-series-1: #b98331;
+    --color-series-2: #5b8fd6;
+  }
+}
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Big readouts use Archivo's expanded width. */
+@utility readout {
+  font-variant-numeric: tabular-nums;
+  font-stretch: 125%;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

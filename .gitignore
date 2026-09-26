@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+# Node
+node_modules/
+dist/
+dev-dist/
+playwright-report/
+test-results/
+# Env
+.env
+.env.local
+# Supabase
+supabase/.branches/
+supabase/.temp/
+frontend/e2e/.user.json

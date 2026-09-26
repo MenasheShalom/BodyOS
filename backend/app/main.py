@@ -1,0 +1,60 @@
+import logging
+import uuid
+from collections.abc import Awaitable, Callable
+
+from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.config import get_settings
+from app.routers import body_entries, dashboard, goals, measurements, photos, profile, series
+
+logger = logging.getLogger("bodyos")
+
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    app = FastAPI(title="BodyOS API")
+
+    @app.middleware("http")
+    async def request_id_middleware(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        request_id = str(uuid.uuid4())
+        request.state.request_id = request_id
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception("Unhandled error request_id=%s path=%s", request_id, request.url.path)
+            response = JSONResponse(
+                status_code=500,
+                content={"detail": "Something went wrong", "request_id": request_id},
+            )
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+    # CORS is added last so it wraps everything, including error responses.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["X-Request-ID"],
+    )
+
+    @app.get("/health")
+    def health() -> dict[str, str]:
+        return {"status": "ok"}
+
+    app.include_router(profile.router)
+    app.include_router(body_entries.router)
+    app.include_router(measurements.router)
+    app.include_router(series.router)
+    app.include_router(goals.router)
+    app.include_router(photos.router)
+    app.include_router(dashboard.router)
+
+    return app
+
+
+app = create_app()
