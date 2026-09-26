@@ -1,9 +1,12 @@
 from datetime import date, datetime, timedelta
-from typing import Literal, Self
+from typing import TYPE_CHECKING, Literal, Self
 from uuid import UUID
 from zoneinfo import available_timezones
 
 from pydantic import AwareDatetime, BaseModel, Field, field_validator, model_validator
+
+if TYPE_CHECKING:
+    from app.services.series_service import SeriesResult
 
 OPTIONAL_SCALE_FIELDS: tuple[str, ...] = (
     "body_fat_pct",
@@ -146,3 +149,40 @@ class MeasurementOut(MeasurementIn):
 
 class NavyPreview(BaseModel):
     navy_body_fat_pct: float | None
+
+
+class PointOut(BaseModel):
+    date: date
+    value: float
+
+
+class SeriesOut(BaseModel):
+    metric: str
+    label: str
+    unit: str
+    points: list[PointOut]
+    trend: list[PointOut]
+    change: float | None
+    weekly_rate: float | None
+    min: float | None
+    max: float | None
+    latest: float | None
+
+
+def _r(value: float | None) -> float | None:
+    return None if value is None else round(value, 2)
+
+
+def series_out(result: "SeriesResult") -> SeriesOut:
+    return SeriesOut(
+        metric=result.metric,
+        label=result.label,
+        unit=result.unit,
+        points=[PointOut(date=p.day, value=round(p.value, 2)) for p in result.points],
+        trend=[PointOut(date=p.day, value=round(p.value, 2)) for p in result.trend],
+        change=_r(result.change),
+        weekly_rate=_r(result.weekly_rate),
+        min=_r(result.min),
+        max=_r(result.max),
+        latest=_r(result.latest),
+    )
