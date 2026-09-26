@@ -2,6 +2,7 @@ import { ChartLine, Ellipsis, House, Images, Plus } from "lucide-react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { env } from "../lib/env";
+import { LogSheet } from "./LogSheet";
 import { WakingBanner } from "./WakingBanner";
 
 export type LogTab = "weigh-in" | "measurements" | "photo";
@@ -79,7 +80,7 @@ export function AppLayout() {
           </NavLink>
         ))}
       </nav>
-      {sheetTab && <p className="sr-only">Log sheet: {sheetTab}</p>}
+      {sheetTab && <LogSheet initialTab={sheetTab} onClose={() => setSheetTab(null)} />}
     </LogSheetContext.Provider>
   );
 }

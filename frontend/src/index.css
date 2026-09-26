@@ -46,12 +46,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.tabular {
+@utility tabular {
   font-variant-numeric: tabular-nums;
 }
 
 /* Big readouts use Archivo's expanded width. */
-.readout {
+@utility readout {
   font-variant-numeric: tabular-nums;
   font-stretch: 125%;
   font-weight: 650;
