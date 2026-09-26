@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from "react-router";
 import { RequireAuth } from "./auth/RequireAuth";
 import { RequireProfile } from "./auth/RequireProfile";
 import { AppLayout } from "./components/AppLayout";
+import { Goals } from "./pages/Goals";
+import { History } from "./pages/History";
 import { Home } from "./pages/Home";
 import { More } from "./pages/More";
 import { Onboarding } from "./pages/Onboarding";
@@ -27,6 +29,8 @@ export function App() {
           <Route index element={<Home />} />
           <Route path="trends" element={<Trends />} />
           <Route path="more" element={<More />} />
+          <Route path="history" element={<History />} />
+          <Route path="goals" element={<Goals />} />
           <Route path="photos" element={<Photos />} />
           <Route path="photos/compare" element={<PhotoCompare />} />
           <Route path="settings" element={<Settings />} />
