@@ -1,13 +1,16 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MeasurementForm } from "../forms/MeasurementForm";
+import { PhotoForm } from "../forms/PhotoForm";
 import { WeighInForm } from "../forms/WeighInForm";
-import { bodyEntries, measurements, useProfile } from "../lib/queries";
+import { latestByPose, useUploadPhoto } from "../lib/photos";
+import { bodyEntries, measurements, usePhotos, useProfile } from "../lib/queries";
 import type { LogTab } from "./AppLayout";
 
 const TABS: { key: LogTab; label: string }[] = [
   { key: "weigh-in", label: "Weigh-in" },
   { key: "measurements", label: "Measurements" },
+  { key: "photo", label: "Photo" },
 ];
 
 export function LogSheet({ initialTab, onClose }: { initialTab: LogTab; onClose: () => void }) {
@@ -17,6 +20,8 @@ export function LogSheet({ initialTab, onClose }: { initialTab: LogTab; onClose:
   const tapes = measurements.useList();
   const createEntry = bodyEntries.useCreate();
   const createMeasurement = measurements.useCreate();
+  const photos = usePhotos();
+  const upload = useUploadPhoto();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -79,6 +84,15 @@ export function LogSheet({ initialTab, onClose }: { initialTab: LogTab; onClose:
             lastValues={tapes.data?.[0]}
             onSubmit={async (payload) => {
               await createMeasurement.mutateAsync(payload);
+              onClose();
+            }}
+          />
+        )}
+        {tab === "photo" && (
+          <PhotoForm
+            lastByPose={latestByPose(photos.data ?? [])}
+            onSubmit={async (p) => {
+              await upload.mutateAsync(p);
               onClose();
             }}
           />

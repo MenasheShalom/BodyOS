@@ -5,6 +5,8 @@ import { AppLayout } from "./components/AppLayout";
 import { Home } from "./pages/Home";
 import { More } from "./pages/More";
 import { Onboarding } from "./pages/Onboarding";
+import { PhotoCompare } from "./pages/PhotoCompare";
+import { Photos } from "./pages/Photos";
 import { Settings } from "./pages/Settings";
 import { SignIn } from "./pages/SignIn";
 
@@ -23,6 +25,8 @@ export function App() {
         >
           <Route index element={<Home />} />
           <Route path="more" element={<More />} />
+          <Route path="photos" element={<Photos />} />
+          <Route path="photos/compare" element={<PhotoCompare />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Route>
