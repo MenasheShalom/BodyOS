@@ -6,6 +6,7 @@ import { App } from "./App";
 import { AuthProvider } from "./auth/AuthProvider";
 import "./index.css";
 import { ApiError, setTokenGetter, setUnauthorizedHandler } from "./lib/api";
+import { handleUnauthorized } from "./lib/session";
 import { supabase } from "./lib/supabase";
 
 const queryClient = new QueryClient({
@@ -19,11 +20,7 @@ const queryClient = new QueryClient({
 });
 
 setTokenGetter(async () => (await supabase.auth.getSession()).data.session?.access_token ?? null);
-setUnauthorizedHandler(() => {
-  if (window.location.pathname.startsWith("/sign-in")) return;
-  const next = encodeURIComponent(window.location.pathname + window.location.search);
-  void supabase.auth.signOut().finally(() => window.location.assign(`/sign-in?next=${next}`));
-});
+setUnauthorizedHandler(() => void handleUnauthorized());
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

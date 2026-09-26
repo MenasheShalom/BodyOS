@@ -78,3 +78,26 @@ def test_tampered_token_is_401(client) -> None:
     token = make_token(uuid.uuid4())
     bad = token[:-2] + ("aa" if not token.endswith("aa") else "bb")
     assert client.get("/me/profile", headers={"Authorization": f"Bearer {bad}"}).status_code == 401
+
+
+def test_jwks_outage_is_503_not_401(client, monkeypatch) -> None:
+    """A signing-key fetch failure is our outage, not an invalid session."""
+    import base64
+    import json
+
+    import jwt
+
+    from app import auth
+
+    class DownClient:
+        def get_signing_key_from_jwt(self, token: str) -> None:
+            raise jwt.PyJWKClientConnectionError("JWKS unreachable")
+
+    monkeypatch.setattr(auth, "_jwks_client", lambda url: DownClient())
+
+    def b64(data: dict) -> str:
+        return base64.urlsafe_b64encode(json.dumps(data).encode()).rstrip(b"=").decode()
+
+    token = f"{b64({'alg': 'ES256', 'typ': 'JWT'})}.{b64({'sub': str(uuid.uuid4())})}.c2ln"
+    res = client.get("/me/profile", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 503

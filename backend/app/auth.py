@@ -39,6 +39,12 @@ def decode_token(token: str, settings: Settings) -> uuid.UUID:
             algorithms = ["RS256", "ES256"]
         claims = jwt.decode(token, key, algorithms=algorithms, audience="authenticated")
         return uuid.UUID(claims["sub"])
+    except jwt.PyJWKClientConnectionError as exc:
+        # Our key fetch failed; the user's session may be fine. Don't make them sign in again.
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Sign-in check is temporarily unavailable. Please try again.",
+        ) from exc
     except (jwt.PyJWTError, KeyError, ValueError) as exc:
         raise _unauthorized("Invalid or expired token") from exc
 
