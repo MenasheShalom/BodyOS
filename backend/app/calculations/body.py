@@ -29,9 +29,7 @@ def navy_body_fat_pct(
         girth = waist_cm - neck_cm
         if girth <= 0:
             return None
-        value = (
-            495 / (1.0324 - 0.19077 * math.log10(girth) + 0.15456 * math.log10(height_cm)) - 450
-        )
+        value = 495 / (1.0324 - 0.19077 * math.log10(girth) + 0.15456 * math.log10(height_cm)) - 450
     else:
         if hips_cm is None:
             return None
