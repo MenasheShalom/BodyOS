@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { type ChartRow, mergeSeries } from "../../lib/chart";
+import { type ChartRow, mergeSeries, yDomain } from "../../lib/chart";
 import { formatDay, formatValue } from "../../lib/format";
 import type { Series } from "../../lib/types";
 
@@ -57,6 +57,7 @@ function Legend({ series, color, goal }: { series: Series; color: string; goal: 
 }
 
 function Panel({ rows, series, rawKey, trendKey, color, goalValue, compact }: PanelProps) {
+  const values = [...series.points, ...series.trend].map((p) => p.value);
   return (
     <figure>
       <Legend series={series} color={color} goal={goalValue != null} />
@@ -73,7 +74,8 @@ function Panel({ rows, series, rawKey, trendKey, color, goalValue, compact }: Pa
               tickLine={false}
             />
             <YAxis
-              domain={["auto", "auto"]}
+              domain={yDomain(values, goalValue)}
+              allowDecimals
               stroke="var(--color-muted)"
               fontSize={12}
               width={44}

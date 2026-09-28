@@ -42,7 +42,7 @@ test("onboard, log weigh-ins and see them on Home and Trends", async ({ page }) 
   await page.getByRole("button", { name: "Save weigh-in" }).click();
 
   await expect(page.getByText("Fat mass")).toBeVisible();
-  await expect(page.getByText("15.7 kg")).toBeVisible(); // 82.4 × 19%
+  await expect(page.getByText("15.7", { exact: true })).toBeVisible(); // 82.4 kg × 19%
 
   await page.getByRole("button", { name: "Log" }).click();
   await page.getByLabel("Weight").fill("82,0");
