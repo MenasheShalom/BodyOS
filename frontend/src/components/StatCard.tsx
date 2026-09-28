@@ -1,10 +1,11 @@
 import { Link } from "react-router";
-import { changeTone, type Direction, formatChange, formatValue } from "../lib/format";
+import { changeTone, type Direction, formatChange } from "../lib/format";
 import type { MetricSummary } from "../lib/types";
 import { Sparkline } from "./charts/Sparkline";
 
 const TONE_CLASS = { good: "text-good", bad: "text-bad", neutral: "text-muted" } as const;
 const SIZE_CLASS = { hero: "text-4xl", card: "text-2xl", mini: "text-lg" } as const;
+const UNIT_CLASS = { hero: "text-lg", card: "text-base", mini: "text-sm" } as const;
 
 type Props = {
   summary: MetricSummary;
@@ -34,8 +35,13 @@ export function StatCard({
         )}
         {summary.label}
       </p>
-      <p className={`readout mt-1 ${SIZE_CLASS[size]}`}>
-        {formatValue(summary.latest, summary.unit)}
+      <p className={`readout mt-1 whitespace-nowrap ${SIZE_CLASS[size]}`}>
+        <span>{summary.latest == null ? "—" : summary.latest.toFixed(1)}</span>
+        {summary.latest != null && summary.unit && (
+          <span className={`${summary.unit === "%" ? "ml-0.5" : "ml-1"} font-medium text-muted ${UNIT_CLASS[size]}`}>
+            {summary.unit}
+          </span>
+        )}
       </p>
       {size !== "mini" && summary.change_30d != null && (
         <p className="tabular mt-1 text-sm">

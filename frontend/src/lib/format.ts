@@ -12,7 +12,9 @@ export function formatChange(value: number | null | undefined, unit = "", digits
   if (value == null) return "—";
   const rounded = Number(value.toFixed(digits));
   const sign = rounded > 0 ? "+" : rounded < 0 ? "−" : "±";
-  return `${sign}${formatValue(Math.abs(value), unit, digits)}`;
+  // A change in a percentage (e.g. body fat 20% → 17.5%) is in percentage points.
+  const changeUnit = unit === "%" ? "pts" : unit;
+  return `${sign}${formatValue(Math.abs(value), changeUnit, digits)}`;
 }
 
 export function formatDay(isoDate: string): string {

@@ -24,7 +24,12 @@ describe("formatValue", () => {
 describe("formatChange", () => {
   it("adds a sign", () => {
     expect(formatChange(-0.42, "kg")).toBe("−0.4 kg");
-    expect(formatChange(1.25, "%")).toBe("+1.3%");
+    expect(formatChange(0, "kg")).toBe("±0.0 kg");
+  });
+  it("reports changes in a percentage as percentage points", () => {
+    // 20% → 17.5% is a drop of 2.5 points, not 2.5 percent.
+    expect(formatChange(-2.5, "%")).toBe("−2.5 pts");
+    expect(formatChange(1.25, "%")).toBe("+1.3 pts");
     expect(formatChange(0, "kg")).toBe("±0.0 kg");
     expect(formatChange(null)).toBe("—");
   });

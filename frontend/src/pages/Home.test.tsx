@@ -71,7 +71,7 @@ describe("Home", () => {
       },
     });
     renderHome();
-    expect(screen.getByText("14.8 kg")).toBeInTheDocument();
+    expect(screen.getByText("14.8").parentElement).toHaveTextContent("14.8kg");
     expect(screen.getByText("−0.6 kg")).toHaveAttribute("data-tone", "good");
     expect(screen.getByText("+0.3 kg")).toHaveAttribute("data-tone", "good");
     expect(screen.getByText("Last weigh-in: 3 days ago")).toBeInTheDocument();
