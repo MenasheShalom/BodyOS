@@ -1,9 +1,18 @@
 """Request/response models for the nutrition API (sub-project 2)."""
 
+from datetime import date, datetime
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, Field, PrivateAttr, StringConstraints, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    Field,
+    PrivateAttr,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from app.nutrients import Nutrients, validate_nutrients
 
@@ -77,3 +86,97 @@ class FoodSearchOut(BaseModel):
     local: list[FoodOut]
     external: list[FoodOut]
     sources_failed: list[str]
+
+
+Meal = Literal["breakfast", "lunch", "dinner", "snack"]
+QUICK_ADD_KEYS = ("energy_kcal", "protein_g", "carbs_g", "fat_g")
+
+
+def validate_quick_nutrients(n: dict[str, float]) -> Nutrients:
+    extra = set(n) - set(QUICK_ADD_KEYS)
+    if extra:
+        raise ValueError("Quick add takes calories, protein, carbs and fat only")
+    out = validate_nutrients(n, per_100g=False)
+    if not 0 < out["energy_kcal"] <= 10000:
+        raise ValueError("Calories must be between 1 and 10000")
+    return out
+
+
+class FoodLogIn(BaseModel):
+    food_id: UUID
+    grams: float = Field(ge=0.1, le=5000)
+    serving_label: Annotated[str, StringConstraints(max_length=100)] | None = None
+    serving_count: float | None = Field(default=None, gt=0, le=100)
+    meal: Meal
+    eaten_at: AwareDatetime
+
+
+class QuickAddIn(BaseModel):
+    name: Name = "Quick add"
+    nutrients: dict[str, float]
+    meal: Meal
+    eaten_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def _check_nutrients(self) -> Self:
+        self.nutrients = validate_quick_nutrients(self.nutrients)
+        return self
+
+
+class FoodLogPatch(BaseModel):
+    grams: float | None = Field(default=None, ge=0.1, le=5000)
+    serving_label: Annotated[str, StringConstraints(max_length=100)] | None = None
+    serving_count: float | None = Field(default=None, gt=0, le=100)
+    meal: Meal | None = None
+    eaten_at: AwareDatetime | None = None
+    name: Name | None = None
+    nutrients: dict[str, float] | None = None
+
+    @model_validator(mode="after")
+    def _required_not_null(self) -> Self:
+        for field in ("grams", "meal", "eaten_at", "name", "nutrients"):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(f"{field} can't be empty")
+        if self.nutrients is not None:
+            self.nutrients = validate_quick_nutrients(self.nutrients)
+        return self
+
+
+class FoodLogOut(BaseModel):
+    id: UUID
+    eaten_at: datetime
+    meal: Meal
+    food_id: UUID | None
+    name: str
+    grams: float | None
+    serving_label: str | None
+    serving_count: float | None
+    nutrients: dict[str, float]
+    meal_ref: UUID | None
+
+    @field_validator("nutrients")
+    @classmethod
+    def _round(cls, n: dict[str, float]) -> dict[str, float]:
+        return {k: round(v, 1) for k, v in n.items()}
+
+
+TargetOrigin = Literal["manual", "suggested"]
+
+
+class TargetsOut(BaseModel):
+    effective_from: date
+    energy_kcal: int
+    protein_g: int
+    carbs_g: int
+    fat_g: int
+    fiber_g: int
+    origin: TargetOrigin
+    tdee_at_creation: int | None
+
+
+class FoodDayOut(BaseModel):
+    day: date
+    entries: list[FoodLogOut]
+    totals: dict[str, float]
+    coverage: dict[str, float]
+    target: TargetsOut | None
