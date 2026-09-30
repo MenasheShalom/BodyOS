@@ -1,7 +1,7 @@
 # BodyOS — Sub-project 2: Nutrition
 
 - **Date:** 2026-09-30
-- **Status:** Draft, awaiting review
+- **Status:** Approved (review answers folded in, see §11)
 - **Scope:** Second of four sub-projects. Delivers food logging (search, barcode, custom foods, recipes, saved meals, quick-add), a cached food database backed by Open Food Facts and USDA FoodData Central, macro and key-micronutrient tracking, adaptive TDEE, and weekly suggested targets that the user approves.
 - **Builds on:** `2026-09-25-bodyos-foundation-body-tracking-design.md` (architecture, auth, timezone bucketing, EWMA trend, metric registry, dashboard).
 
@@ -40,6 +40,7 @@ The user is doing a **recomposition** (lose fat, keep or gain muscle). Sub-proje
 | Barcode scanning | Native `BarcodeDetector` where the browser supports it. Otherwise `zxing-wasm` (iOS Safari has no `BarcodeDetector`). Typing the digits is always available. |
 | Targets | Adaptive TDEE → weekly *suggested* targets → the user accepts or edits them. Nothing changes silently. |
 | Micros reference | Fixed reference intakes by sex and age (RDA/AI) in code. Not user-editable in v1. |
+| Food region | Israel. OFF search is one worldwide query whose results are re-ranked so products sold in Israel (`countries_tags` contains `en:israel`) come first. Hebrew queries and Hebrew product names are supported; names render with `dir="auto"` |
 | Dependencies | Backend stays standard-library for maths. `httpx` (already a dependency) calls OFF and FDC. Frontend adds `zxing-wasm`. |
 
 ## 3. Architecture changes
@@ -52,6 +53,7 @@ React PWA ──JWT──▶ FastAPI ──▶ Supabase Postgres (foods cache, l
 ```
 
 - New backend module `app/food_sources/` with `off.py`, `fdc.py` and a shared `normalise.py`. They map each source's payload into one `FoodDraft` shape (name, brand, barcode, per-100 g nutrients, servings). The module sits behind a `FoodSource` protocol so tests use a fake, the same pattern as `PhotoStorage`.
+- **OFF rate limits** (about 10 search requests per minute and 100 product reads per minute per IP): one OFF call per submitted search, never per keystroke, and an in-memory TTL cache (10 min) for search and barcode responses. The implementation plan re-checks the current limits.
 - External calls use an 8 s timeout. A failure returns partial results with a `sources_failed` list, and the UI shows "USDA unavailable, showing other results". No retries on the request path.
 - New env vars: `USDA_API_KEY` (in development, `DEMO_KEY` works at low rate limits) and `OFF_USER_AGENT` (for example `BodyOS/0.2 (contact email)`), as OFF requires.
 - OFF data is ODbL-licensed. The food detail screen shows the source and an "Open Food Facts" attribution link. USDA data is public domain.
@@ -137,9 +139,10 @@ Index `(user_id, eaten_at)`.
 - **`nutrition_settings`** (one row per user):
   - `mode`: `recomp` / `cut` / `maintain` / `lean_bulk`. Default `recomp`.
   - `deficit_pct`: default 10. Range −10 (surplus) to 25.
-  - `protein_g_per_kg_lean`: default 2.3. Range 1.6–3.3.
+  - `protein_g_per_kg`: default 2.0 g per kg of **body weight** (trend). Range 1.4–3.0.
   - `activity_level`: `sedentary` / `light` / `moderate` / `very`. Used only for the initial TDEE guess.
-  - `check_in_weekday`: 0–6, default Monday.
+  - `check_in_weekday`: 0–6 (Python `weekday()`, Monday = 0), default 6 (**Sunday**).
+  - `food_country`: OFF country tag used to rank search results, default `en:israel`.
 - **`nutrition_targets`**:
   - Columns: `effective_from` (date), `energy_kcal`, `protein_g`, `carbs_g`, `fat_g`, `fiber_g`, `origin` (`manual` / `suggested`), `tdee_at_creation`.
   - The history is kept, so past days are judged against the target in force on that day.
@@ -151,7 +154,7 @@ Index `(user_id, eaten_at)`.
 
 ### Navigation
 
-Nutrition needs a first-class tab. **Proposed** bottom nav: `Home` · `Food` · **`＋`** · `Trends` · `More`. Photos moves into More, and Home gets a "Photos" shortcut in its nudge area. The sidebar on wide screens lists all of them. *(Open question 1.)*
+Bottom nav becomes `Home` · `Food` · **`＋`** · `Trends` · `More`. Photos moves into More, and Home gets a "Photos" shortcut in its nudge area. The sidebar on wide screens lists all of them.
 
 ### 5.1 Food (day view), the main new screen
 
@@ -163,7 +166,7 @@ Nutrition needs a first-class tab. **Proposed** bottom nav: `Home` · `Food` · 
 
 ### 5.2 Add food sheet (opened from ＋ Log → Food, or a meal's ＋ Add)
 
-- A search field with results grouped **Recent · Favourites · My foods & recipes · Database**. Local results appear instantly. Database results (OFF + USDA) stream in underneath, debounced 350 ms with a minimum of 3 characters.
+- A search field with results grouped **Recent · Favourites · My foods & recipes · Database**. Local results appear instantly. Database results (OFF + USDA) load underneath when the user presses Enter or pauses typing for 800 ms, with a minimum of 3 characters.
 - A **Scan** button opens the camera barcode scanner. The flow is: known barcode → food detail. Unknown barcode → "Not found. Create it?", pre-filled with the barcode.
 - A **Quick add** tab: label (optional), kcal, and optional protein, carbs and fat.
 - **Food detail:** serving picker (named servings, grams or ml, count), a live nutrient preview for the chosen amount, meal and time, a favourite toggle, and **Log**. There is also a "Copy to my foods" action to fix bad external data.
@@ -180,7 +183,7 @@ Nutrition needs a first-class tab. **Proposed** bottom nav: `Home` · `Food` · 
 - **Weekly check-in card** on Home and Food, on or after the check-in weekday when a suggestion differs meaningfully (§6.4):
   - "Your expenditure is estimated at 2,540 kcal (±120). Suggested: 2,290 kcal · P 165 · C 230 · F 75."
   - Actions: **Accept**, **Edit** (opens the prefilled form, saved as `manual`), **Dismiss for this week**.
-- The settings form covers mode, deficit %, protein per kg lean mass and check-in day.
+- The settings form covers mode, deficit %, protein per kg body weight, check-in day and food country.
 - **First-time setup** (the first visit to Food): mode, activity level, then initial targets from BMR × activity factor (§6.2). The user can edit them before saving.
 
 ### 5.5 Micronutrients (Food → "Nutrients" tab)
@@ -230,9 +233,9 @@ For a window of the last **28 days**:
 From the current smoothed TDEE `T`, mode and settings:
 
 - **kcal** = `T × (1 − deficit_pct/100)`, with the mode's default deficit (recomp 10%, cut 20%, maintain 0%, lean bulk −7%) unless the user overrides it.
-- **Protein** = `protein_g_per_kg_lean × lean_mass_trend`. Fallback when no body fat data exists: `1.8 × weight_trend`.
+- **Protein** = `protein_g_per_kg × weight_trend` (default 2.0 g/kg).
 - **Fat** = `max(0.25 × kcal / 9, 0.6 × weight_trend)`.
-- **Carbs** = `(kcal − 4·protein − 9·fat) / 4`. If this is negative, lower the protein to 1.6 g/kg lean mass and recompute. If still negative, cap the deficit.
+- **Carbs** = `(kcal − 4·protein − 9·fat) / 4`. If this is negative, lower the protein to 1.6 g/kg and recompute. If still negative, cap the deficit.
 - **Fibre** = `14 g per 1000 kcal`.
 - **Safety rails:**
   - kcal ≥ `max(BMR, 1500 male / 1200 female)`.
@@ -254,7 +257,7 @@ A table keyed by sex and age band (19–30, 31–50, 51–70, 71+) from the US D
 
 | Method & path | Purpose |
 |---|---|
-| `GET /foods/search?q=&sources=` | Local (own, recipes, favourites, cached) + OFF + FDC, merged and de-duplicated by barcode. Returns `sources_failed` |
+| `GET /foods/search?q=&sources=` | Local (own, recipes, favourites, cached) + OFF (products sold in Israel ranked first) + FDC, merged and de-duplicated by barcode. Returns `sources_failed` |
 | `GET /foods/barcode/{code}` | Cache → OFF → FDC branded (`gtinUpc`). 404 if not found |
 | `GET /foods/{id}` · `POST /foods/import` `{source, source_ref}` | Detail / cache an external result and return its id |
 | `POST/PATCH/DELETE /foods` (custom) | CRUD for own foods. Delete archives a food if the log references it |
@@ -313,10 +316,10 @@ Each phase is one PR, and each is usable on its own:
 2. **Speed:** barcode scanner, recent, favourites, copy day/meal, saved meals, recipes.
 3. **Insight:** adaptive TDEE, suggested targets + weekly check-in, micronutrients view, and the Trends, Home and History integration.
 
-## 11. Open questions for review
+## 11. Review decisions (2026-09-30)
 
-1. **Nav:** move Photos into More so Food gets a bottom-nav tab (proposed), or keep five tabs and put Food only behind ＋ and Home?
-2. **Default deficit for recomp:** 10% (proposed), or smaller (5%) for a slower, more muscle-friendly pace?
-3. **Protein default:** 2.3 g per kg lean mass (≈ 1.8–2.0 g/kg body weight at typical body fat). OK?
-4. **Check-in day:** Monday (proposed)?
-5. **Local foods:** do you mostly eat foods sold in a specific country? OFF search can be biased toward that country's products (for example `countries_tags=israel`), which noticeably improves search relevance.
+1. **Nav:** Photos moves into More; Food gets the bottom-nav tab.
+2. **Recomp deficit:** 10% below TDEE.
+3. **Protein:** 2.0 g per kg of body weight (weight trend). *Read as body weight, not lean mass; this is a one-number change in `nutrition_settings` if you meant per kg lean mass.*
+4. **Check-in day:** Sunday.
+5. **Food region:** Israel. OFF results sold in Israel rank first, and Hebrew product names are first-class.
