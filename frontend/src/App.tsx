@@ -10,10 +10,12 @@ import { Home } from "./pages/Home";
 import { More } from "./pages/More";
 import { MyFoods } from "./pages/MyFoods";
 import { Nutrition } from "./pages/Nutrition";
+import { NutritionSetup } from "./pages/NutritionSetup";
 import { Onboarding } from "./pages/Onboarding";
 import { PhotoCompare } from "./pages/PhotoCompare";
 import { Photos } from "./pages/Photos";
 import { Settings } from "./pages/Settings";
+import { Targets } from "./pages/Targets";
 import { SignIn } from "./pages/SignIn";
 import { Trends } from "./pages/Trends";
 
@@ -40,6 +42,8 @@ export function App() {
           <Route path="photos/compare" element={<PhotoCompare />} />
           <Route path="settings" element={<Settings />} />
           <Route path="nutrition" element={<Nutrition />} />
+          <Route path="nutrition/setup" element={<NutritionSetup />} />
+          <Route path="nutrition/targets" element={<Targets />} />
           <Route path="nutrition/foods" element={<MyFoods />} />
           <Route path="nutrition/foods/new" element={<FoodEditor />} />
           <Route path="nutrition/foods/:id" element={<FoodEditor />} />
