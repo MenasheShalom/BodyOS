@@ -2,6 +2,12 @@ import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tansta
 import { api } from "./api";
 import type {
   BodyEntry,
+  CopyInput,
+  Meal,
+  RecentFood,
+  Recipe,
+  RecipeInput,
+  SavedMeal,
   CustomFoodInput,
   Estimate,
   EstimateParams,
@@ -44,12 +50,17 @@ export const qk = {
   myFoods: ["my-foods"] as const,
   nutritionSettings: ["nutrition-settings"] as const,
   targets: ["nutrition-targets"] as const,
+  favourites: ["favourites"] as const,
+  recentFoods: ["recent-foods"] as const,
+  recipes: ["recipes"] as const,
+  savedMeals: ["saved-meals"] as const,
   estimate: (p: EstimateParams) =>
     ["nutrition-estimate", p.mode, p.activity_level, p.deficit_pct, p.protein_g_per_kg] as const,
 };
 
 export function invalidateNutrition(qc: QueryClient): void {
   void qc.invalidateQueries({ queryKey: ["food-day"] });
+  void qc.invalidateQueries({ queryKey: qk.recentFoods });
   void qc.invalidateQueries({ queryKey: qk.dashboard });
 }
 
@@ -226,7 +237,7 @@ export function useDeleteCustomFood() {
   });
 }
 
-function useLogMutation<TVars>(fn: (vars: TVars) => Promise<unknown>) {
+function useLogMutation<TVars, TResult>(fn: (vars: TVars) => Promise<TResult>) {
   const qc = useQueryClient();
   return useMutation({ mutationFn: fn, onSuccess: () => invalidateNutrition(qc) });
 }
@@ -297,3 +308,89 @@ export function useEstimate(params: EstimateParams, enabled = true) {
     retry: false,
   });
 }
+
+// --- Nutrition phase 2: favourites, recent, copy, barcode, recipes, saved meals ------------
+
+export function useFavourites() {
+  return useQuery({ queryKey: qk.favourites, queryFn: () => api<Food[]>("/favourites") });
+}
+
+export function useSetFavourite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ foodId, favourite }: { foodId: string; favourite: boolean }) =>
+      api<void>(`/favourites/${foodId}`, { method: favourite ? "PUT" : "DELETE" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.favourites }),
+  });
+}
+
+export function useRecentFoods() {
+  return useQuery({ queryKey: qk.recentFoods, queryFn: () => api<RecentFood[]>("/foods/recent") });
+}
+
+export const useCopyEntries = () =>
+  useLogMutation((body: CopyInput) =>
+    api<FoodLogEntry[]>("/food-log/copy", { method: "POST", json: body }),
+  );
+
+/** Look a barcode up: own or cached food, then Open Food Facts, then USDA. */
+export function useBarcodeLookup() {
+  return useMutation({
+    mutationFn: (code: string) => api<Food>(`/foods/barcode/${encodeURIComponent(code)}`),
+  });
+}
+
+export function useRecipes() {
+  return useQuery({ queryKey: qk.recipes, queryFn: () => api<Recipe[]>("/recipes") });
+}
+
+export function useSaveRecipe() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: string; body: RecipeInput }) =>
+      id
+        ? api<Recipe>(`/recipes/${id}`, { method: "PUT", json: body })
+        : api<Recipe>("/recipes", { method: "POST", json: body }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.recipes });
+      void qc.invalidateQueries({ queryKey: ["food-search"] });
+    },
+  });
+}
+
+export function useDeleteRecipe() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<void>(`/recipes/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.recipes });
+      void qc.invalidateQueries({ queryKey: ["food-search"] });
+    },
+  });
+}
+
+export function useSavedMeals() {
+  return useQuery({ queryKey: qk.savedMeals, queryFn: () => api<SavedMeal[]>("/saved-meals") });
+}
+
+export function useSaveMealFromLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name: string; day: string; meal: Meal }) =>
+      api<SavedMeal>("/saved-meals/from-log", { method: "POST", json: body }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.savedMeals }),
+  });
+}
+
+export function useDeleteSavedMeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<void>(`/saved-meals/${id}`, { method: "DELETE" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.savedMeals }),
+  });
+}
+
+export const useLogSavedMeal = () =>
+  useLogMutation(({ id, meal, eaten_at }: { id: string; meal: Meal; eaten_at: string }) =>
+    api<FoodLogEntry[]>(`/saved-meals/${id}/log`, { method: "POST", json: { meal, eaten_at } }),
+  );

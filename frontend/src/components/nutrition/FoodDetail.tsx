@@ -1,11 +1,11 @@
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Star } from "lucide-react";
 import { useState } from "react";
 import { ApiError } from "../../lib/api";
 import { localInputToIso, toLocalInputValue } from "../../lib/format";
 import { eatenAtFor, MEALS } from "../../lib/meals";
-import { useLogFood } from "../../lib/queries";
+import { useFavourites, useLogFood, useSetFavourite } from "../../lib/queries";
 import { choiceGrams, nutrientsFor, type ServingChoice, servingsFor } from "../../lib/serving";
-import type { Food, Meal } from "../../lib/types";
+import type { Food, Meal, Serving } from "../../lib/types";
 import { Field } from "../Field";
 import { FoodName } from "./FoodName";
 import { ServingPicker } from "./ServingPicker";
@@ -37,10 +37,44 @@ function SourceBadge({ food }: { food: Food }) {
 
 const round = (n: number | undefined) => (n == null ? "—" : String(Math.round(n)));
 
+/** The amount logged last time, used to preselect the serving when re-logging. */
+export type InitialAmount = {
+  grams: number;
+  serving_label: string | null;
+  serving_count: number | null;
+};
+
+function initialChoice(servings: Serving[], initial?: InitialAmount): ServingChoice {
+  if (!initial) return { index: servings.length > 1 ? 1 : 0, count: "1" };
+  const index = servings.findIndex((s) => s.label === initial.serving_label);
+  if (index >= 0 && initial.serving_count != null) {
+    return { index, count: String(Number(initial.serving_count.toFixed(2))) };
+  }
+  return { index: 0, count: String(Number((initial.grams / 100).toFixed(2))) };
+}
+
+function FavouriteButton({ foodId }: { foodId: string }) {
+  const favourites = useFavourites();
+  const setFavourite = useSetFavourite();
+  const on = favourites.data?.some((f) => f.id === foodId) ?? false;
+  return (
+    <button
+      type="button"
+      aria-label={on ? "Remove from favourites" : "Add to favourites"}
+      aria-pressed={on}
+      onClick={() => setFavourite.mutate({ foodId, favourite: !on })}
+      className={`rounded-full p-1.5 ${on ? "text-accent" : "text-muted"}`}
+    >
+      <Star size={20} fill={on ? "currentColor" : "none"} />
+    </button>
+  );
+}
+
 type Props = {
   food: Food & { id: string };
   day: string;
   meal: Meal;
+  initial?: InitialAmount;
   onBack: () => void;
   onLogged: () => void;
   onCopyToMine?: (food: Food) => void;
@@ -50,6 +84,7 @@ export function FoodDetail({
   food,
   day,
   meal: initialMeal,
+  initial,
   onBack,
   onLogged,
   onCopyToMine,
@@ -57,11 +92,8 @@ export function FoodDetail({
   const logFood = useLogFood();
   const servings = servingsFor(food);
   const unit = food.is_liquid ? "ml" : "g";
-  // Start on the food's own serving when it has one: "1 × 2 tbsp" beats "1 × 100 g".
-  const [choice, setChoice] = useState<ServingChoice>({
-    index: servings.length > 1 ? 1 : 0,
-    count: "1",
-  });
+  // Start on last time's amount, else the food's own serving: "1 × 2 tbsp" beats "1 × 100 g".
+  const [choice, setChoice] = useState<ServingChoice>(() => initialChoice(servings, initial));
   const [meal, setMeal] = useState<Meal>(initialMeal);
   const [time, setTime] = useState(() =>
     toLocalInputValue(new Date(eatenAtFor(day, initialMeal, new Date()))),
@@ -96,7 +128,10 @@ export function FoodDetail({
       </button>
       <div className="flex items-start justify-between gap-3">
         <FoodName name={food.name} brand={food.brand} />
-        <SourceBadge food={food} />
+        <span className="flex shrink-0 items-center gap-1">
+          <SourceBadge food={food} />
+          <FavouriteButton foodId={food.id} />
+        </span>
       </div>
 
       <ServingPicker servings={servings} value={choice} onChange={setChoice} unit={unit} />

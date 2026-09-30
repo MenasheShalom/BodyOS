@@ -17,7 +17,7 @@ const str = (n: number | undefined) => (n == null ? "" : String(Math.round(n * 1
 
 type Props = {
   /** An existing custom food to edit, or a database food to copy into my foods. */
-  initial?: Food;
+  initial?: Partial<Food>;
   editing?: boolean;
   onSubmit: (body: CustomFoodInput) => Promise<void>;
 };
@@ -27,7 +27,7 @@ export function CustomFoodForm({ initial, editing = false, onSubmit }: Props) {
   const [brand, setBrand] = useState(initial?.brand ?? "");
   const [barcode, setBarcode] = useState(initial?.barcode ?? "");
   const [isLiquid, setIsLiquid] = useState(initial?.is_liquid ?? false);
-  const [basis, setBasis] = useState<Basis>(initial ? "100g" : "serving");
+  const [basis, setBasis] = useState<Basis>(initial?.nutrients_per_100g ? "100g" : "serving");
   const [servingLabel, setServingLabel] = useState("1 serving");
   const [servingGrams, setServingGrams] = useState("");
   const [values, setValues] = useState<Partial<Record<NutrientKey, string>>>(() =>
@@ -39,7 +39,7 @@ export function CustomFoodForm({ initial, editing = false, onSubmit }: Props) {
     (initial?.servings ?? []).map((s) => ({ label: s.label, grams: String(s.grams) })),
   );
   const [showMore, setShowMore] = useState(
-    NUTRIENTS.some((n) => !PRIMARY.includes(n.key) && initial?.nutrients_per_100g[n.key] != null),
+    NUTRIENTS.some((n) => !PRIMARY.includes(n.key) && initial?.nutrients_per_100g?.[n.key] != null),
   );
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);

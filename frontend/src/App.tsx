@@ -11,6 +11,9 @@ import { More } from "./pages/More";
 import { MyFoods } from "./pages/MyFoods";
 import { Nutrition } from "./pages/Nutrition";
 import { NutritionSetup } from "./pages/NutritionSetup";
+import { RecipeEditor } from "./pages/RecipeEditor";
+import { Recipes } from "./pages/Recipes";
+import { SavedMeals } from "./pages/SavedMeals";
 import { Onboarding } from "./pages/Onboarding";
 import { PhotoCompare } from "./pages/PhotoCompare";
 import { Photos } from "./pages/Photos";
@@ -45,6 +48,10 @@ export function App() {
           <Route path="nutrition/setup" element={<NutritionSetup />} />
           <Route path="nutrition/targets" element={<Targets />} />
           <Route path="nutrition/foods" element={<MyFoods />} />
+          <Route path="nutrition/recipes" element={<Recipes />} />
+          <Route path="nutrition/recipes/new" element={<RecipeEditor />} />
+          <Route path="nutrition/recipes/:id" element={<RecipeEditor />} />
+          <Route path="nutrition/meals" element={<SavedMeals />} />
           <Route path="nutrition/foods/new" element={<FoodEditor />} />
           <Route path="nutrition/foods/:id" element={<FoodEditor />} />
         </Route>
