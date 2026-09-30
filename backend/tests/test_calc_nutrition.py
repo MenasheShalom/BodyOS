@@ -113,3 +113,27 @@ def test_validate_rejects_implausible_and_unknown_keys() -> None:
         validate_nutrients({"energy_kcal": 100, "caffeine_mg": 5}, per_100g=False)
     with pytest.raises(ValueError):
         validate_nutrients({"energy_kcal": -1}, per_100g=False)
+
+
+def test_recipe_totals_raw_weight() -> None:
+    from app.calculations.nutrition import recipe_totals
+
+    t = recipe_totals(
+        [({"energy_kcal": 100, "protein_g": 20}, 200), ({"energy_kcal": 50, "protein_g": 1}, 100)],
+        None,
+    )
+    assert t.weight_g == 300
+    assert t.total == {"energy_kcal": 250, "protein_g": 41}
+    assert t.per_100g["energy_kcal"] == pytest.approx(250 / 3)
+    assert t.incomplete == []
+
+
+def test_recipe_totals_cooked_weight_and_incomplete() -> None:
+    from app.calculations.nutrition import recipe_totals
+
+    t = recipe_totals(
+        [({"energy_kcal": 100, "vit_c_mg": 10}, 200), ({"energy_kcal": 50}, 100)],
+        cooked_weight_g=250,  # water cooked off
+    )
+    assert t.per_100g == {"energy_kcal": 100}
+    assert t.incomplete == ["vit_c_mg"]

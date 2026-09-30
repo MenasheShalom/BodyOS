@@ -98,3 +98,29 @@ def targets_from_tdee(
         _round(fat, 5),
         _round(14 * kcal / 1000, 5),
     )
+
+
+@dataclass(frozen=True)
+class RecipeTotals:
+    total: Nutrients  # the whole recipe, only nutrients every ingredient reports
+    per_100g: Nutrients
+    weight_g: float  # cooked weight when given, else the sum of ingredient weights
+    incomplete: list[str]  # reported by some ingredients but not all, so left out
+
+
+def recipe_totals(
+    items: list[tuple[Nutrients, float]], cooked_weight_g: float | None
+) -> RecipeTotals:
+    """Nutrients of a recipe from (per-100 g nutrients, grams) per ingredient."""
+    scaled = [scale(per_100g, grams) for per_100g, grams in items]
+    weight = cooked_weight_g or sum(grams for _, grams in items)
+    total: Nutrients = {}
+    incomplete: list[str] = []
+    for key in NUTRIENTS:
+        reporting = [s for s in scaled if key in s]
+        if reporting and len(reporting) == len(scaled):
+            total[key] = sum(s[key] for s in reporting)
+        elif reporting:
+            incomplete.append(key)
+    per_100g = {k: v * 100 / weight for k, v in total.items()} if weight > 0 else {}
+    return RecipeTotals(total, per_100g, weight, incomplete)

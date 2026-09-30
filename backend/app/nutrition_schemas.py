@@ -244,3 +244,38 @@ class CopyIn(BaseModel):
         if self.to_meal is not None and self.meal is None:
             raise ValueError("Choose which meal to copy")
         return self
+
+
+class RecipeItemIn(BaseModel):
+    food_id: UUID
+    grams: float = Field(ge=0.1, le=5000)
+
+
+class RecipeIn(BaseModel):
+    name: Name
+    servings: float = Field(ge=0.25, le=100)
+    cooked_weight_g: float | None = Field(default=None, ge=1, le=20000)
+    note: Annotated[str, StringConstraints(max_length=500)] | None = None
+    items: list[RecipeItemIn] = Field(min_length=1, max_length=50)
+
+
+class RecipeItemOut(BaseModel):
+    food_id: UUID
+    name: str
+    brand: str | None
+    grams: float
+    nutrients: dict[str, float]
+
+
+class RecipeOut(BaseModel):
+    id: UUID
+    name: str
+    servings: float
+    cooked_weight_g: float | None
+    note: str | None
+    food_id: UUID
+    items: list[RecipeItemOut]
+    total_grams: float
+    serving_grams: float
+    per_serving: dict[str, float]
+    incomplete_nutrients: list[str]
