@@ -3,10 +3,13 @@ import { RequireAuth } from "./auth/RequireAuth";
 import { RequireProfile } from "./auth/RequireProfile";
 import { AppLayout } from "./components/AppLayout";
 import { Food } from "./pages/Food";
+import { FoodEditor } from "./pages/FoodEditor";
 import { Goals } from "./pages/Goals";
 import { History } from "./pages/History";
 import { Home } from "./pages/Home";
 import { More } from "./pages/More";
+import { MyFoods } from "./pages/MyFoods";
+import { Nutrition } from "./pages/Nutrition";
 import { Onboarding } from "./pages/Onboarding";
 import { PhotoCompare } from "./pages/PhotoCompare";
 import { Photos } from "./pages/Photos";
@@ -36,6 +39,10 @@ export function App() {
           <Route path="photos" element={<Photos />} />
           <Route path="photos/compare" element={<PhotoCompare />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="nutrition" element={<Nutrition />} />
+          <Route path="nutrition/foods" element={<MyFoods />} />
+          <Route path="nutrition/foods/new" element={<FoodEditor />} />
+          <Route path="nutrition/foods/:id" element={<FoodEditor />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
