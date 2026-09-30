@@ -2,6 +2,20 @@ import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tansta
 import { api } from "./api";
 import type {
   BodyEntry,
+  CustomFoodInput,
+  Estimate,
+  EstimateParams,
+  Food,
+  FoodDay,
+  FoodLogEntry,
+  FoodLogInput,
+  FoodLogPatch,
+  FoodSearch,
+  NutritionSettings,
+  NutritionSettingsInput,
+  QuickAddInput,
+  Targets,
+  TargetsInput,
   BodyEntryInput,
   Dashboard,
   Goal,
@@ -25,7 +39,19 @@ export const qk = {
   photos: (pose?: Pose) => ["photos", pose ?? "all"] as const,
   series: (metric: string, range: RangeKey) => ["series", metric, range] as const,
   navy: (w: number, n: number, h: number | null) => ["navy", w, n, h] as const,
+  foodDay: (day: string) => ["food-day", day] as const,
+  foodSearch: (q: string, external: boolean) => ["food-search", q, external] as const,
+  myFoods: ["my-foods"] as const,
+  nutritionSettings: ["nutrition-settings"] as const,
+  targets: ["nutrition-targets"] as const,
+  estimate: (p: EstimateParams) =>
+    ["nutrition-estimate", p.mode, p.activity_level, p.deficit_pct, p.protein_g_per_kg] as const,
 };
+
+export function invalidateNutrition(qc: QueryClient): void {
+  void qc.invalidateQueries({ queryKey: ["food-day"] });
+  void qc.invalidateQueries({ queryKey: qk.dashboard });
+}
 
 export function invalidateDerived(qc: QueryClient): void {
   void qc.invalidateQueries({ queryKey: ["series"] });
@@ -136,5 +162,138 @@ export function useNavyPreview(waist: number | null, neck: number | null, hips: 
     },
     enabled: waist != null && neck != null,
     staleTime: Infinity,
+  });
+}
+
+// --- Nutrition -------------------------------------------------------------------------------
+
+export function useFoodDay(day: string) {
+  return useQuery({
+    queryKey: qk.foodDay(day),
+    queryFn: () => api<FoodDay>(`/food-log?day=${day}`),
+  });
+}
+
+/** Local matches (own and cached foods) come back fast; `external` also asks OFF and USDA. */
+export function useFoodSearch(q: string, external: boolean, enabled = true) {
+  const query = q.trim();
+  return useQuery({
+    queryKey: qk.foodSearch(query, external),
+    queryFn: () =>
+      api<FoodSearch>(
+        `/foods/search?q=${encodeURIComponent(query)}&external=${external ? "true" : "false"}`,
+      ),
+    enabled: enabled && query.length >= 3,
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useImportFood() {
+  return useMutation({
+    mutationFn: (food: Pick<Food, "source" | "source_ref">) =>
+      api<Food>("/foods/import", {
+        method: "POST",
+        json: { source: food.source, source_ref: food.source_ref },
+      }),
+  });
+}
+
+export function useMyFoods() {
+  return useQuery({ queryKey: qk.myFoods, queryFn: () => api<Food[]>("/foods/mine") });
+}
+
+function invalidateFoods(qc: QueryClient): void {
+  void qc.invalidateQueries({ queryKey: qk.myFoods });
+  void qc.invalidateQueries({ queryKey: ["food-search"] });
+}
+
+export function useSaveCustomFood() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: string | null; body: CustomFoodInput }) =>
+      id
+        ? api<Food>(`/foods/${id}`, { method: "PUT", json: body })
+        : api<Food>("/foods", { method: "POST", json: body }),
+    onSuccess: () => invalidateFoods(qc),
+  });
+}
+
+export function useDeleteCustomFood() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<void>(`/foods/${id}`, { method: "DELETE" }),
+    onSuccess: () => invalidateFoods(qc),
+  });
+}
+
+function useLogMutation<TVars>(fn: (vars: TVars) => Promise<unknown>) {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: fn, onSuccess: () => invalidateNutrition(qc) });
+}
+
+export const useLogFood = () =>
+  useLogMutation((body: FoodLogInput) =>
+    api<FoodLogEntry>("/food-log", { method: "POST", json: body }),
+  );
+export const useQuickAdd = () =>
+  useLogMutation((body: QuickAddInput) =>
+    api<FoodLogEntry>("/food-log/quick", { method: "POST", json: body }),
+  );
+export const useUpdateLogEntry = () =>
+  useLogMutation(({ id, body }: { id: string; body: FoodLogPatch }) =>
+    api<FoodLogEntry>(`/food-log/${id}`, { method: "PATCH", json: body }),
+  );
+export const useDeleteLogEntry = () =>
+  useLogMutation((id: string) => api<void>(`/food-log/${id}`, { method: "DELETE" }));
+
+export function useNutritionSettings() {
+  return useQuery({
+    queryKey: qk.nutritionSettings,
+    queryFn: () => api<NutritionSettings>("/nutrition/settings"),
+  });
+}
+
+export function useSaveNutritionSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: NutritionSettingsInput) =>
+      api<NutritionSettings>("/nutrition/settings", { method: "PUT", json: body }),
+    onSuccess: (saved) => {
+      qc.setQueryData(qk.nutritionSettings, saved);
+      void qc.invalidateQueries({ queryKey: ["food-search"] });
+    },
+  });
+}
+
+export function useTargets() {
+  return useQuery({ queryKey: qk.targets, queryFn: () => api<Targets[]>("/nutrition/targets") });
+}
+
+export function useSaveTargets() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: TargetsInput) =>
+      api<Targets>("/nutrition/targets", { method: "POST", json: body }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.targets });
+      invalidateNutrition(qc);
+    },
+  });
+}
+
+export function useEstimate(params: EstimateParams, enabled = true) {
+  return useQuery({
+    queryKey: qk.estimate(params),
+    queryFn: () => {
+      const search = new URLSearchParams({
+        mode: params.mode,
+        activity_level: params.activity_level,
+        protein_g_per_kg: String(params.protein_g_per_kg),
+      });
+      if (params.deficit_pct != null) search.set("deficit_pct", String(params.deficit_pct));
+      return api<Estimate>(`/nutrition/estimate?${search}`);
+    },
+    enabled,
+    retry: false,
   });
 }
