@@ -7,6 +7,7 @@ const useDashboard = vi.fn();
 vi.mock("../lib/queries", () => ({ useDashboard: () => useDashboard() }));
 vi.mock("../components/AppLayout", () => ({ useLogSheet: () => ({ open: vi.fn() }) }));
 vi.mock("../components/charts/Sparkline", () => ({ Sparkline: () => null }));
+vi.mock("../components/RecentWeighIns", () => ({ RecentWeighIns: () => <p>recent weigh-ins</p> }));
 
 import { Home, nudgeMessages } from "./Home";
 
@@ -76,6 +77,7 @@ describe("Home", () => {
     expect(screen.getByText("+0.3 kg")).toHaveAttribute("data-tone", "good");
     expect(screen.getByText("Last weigh-in: 3 days ago")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Set a goal/ })).toHaveAttribute("href", "/goals");
+    expect(screen.getByText("recent weigh-ins")).toBeInTheDocument();
   });
 });
 

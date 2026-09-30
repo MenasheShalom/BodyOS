@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Field } from "../components/Field";
@@ -37,6 +37,11 @@ type Props = {
 
 const str = (v: unknown) => (typeof v === "number" ? String(v) : "");
 
+/** Shown next to Weight; the rest of the scale fields sit behind "More fields". */
+const PRIMARY: ScaleField[] = ["body_fat_pct", "muscle_mass_kg"];
+/** A new weight this far (as a fraction) from the last one needs confirming. */
+const OUTLIER_RATIO = 0.2;
+
 export function WeighInForm({
   hiddenMetrics,
   lastValues = {},
@@ -45,8 +50,13 @@ export function WeighInForm({
   onSubmit,
 }: Props) {
   const visible = SCALE_FIELDS.filter((f) => !hiddenMetrics.includes(f.key));
-  const [expanded, setExpanded] = useState(() => visible.some((f) => initial?.[f.key] != null));
+  const primary = visible.filter((f) => PRIMARY.includes(f.key));
+  const extra = visible.filter((f) => !PRIMARY.includes(f.key));
+  const [expanded, setExpanded] = useState(() => extra.some((f) => initial?.[f.key] != null));
   const [formError, setFormError] = useState<string | null>(null);
+  const [outlierFrom, setOutlierFrom] = useState<number | null>(null);
+  const outlierConfirmed = useRef(false);
+  const lastWeight = typeof lastValues.weight_kg === "number" ? lastValues.weight_kg : null;
   const {
     register,
     handleSubmit,
@@ -64,6 +74,16 @@ export function WeighInForm({
 
   const submit = handleSubmit(async (values) => {
     setFormError(null);
+    if (
+      lastWeight != null &&
+      !outlierConfirmed.current &&
+      Math.abs(values.weight_kg - lastWeight) / lastWeight > OUTLIER_RATIO
+    ) {
+      setOutlierFrom(lastWeight);
+      return;
+    }
+    outlierConfirmed.current = false;
+    setOutlierFrom(null);
     const payload = {
       measured_at: localInputToIso(values.measured_at),
       weight_kg: values.weight_kg,
@@ -89,6 +109,21 @@ export function WeighInForm({
         className="[&_input]:readout [&_input]:text-2xl"
         {...register("weight_kg")}
       />
+      {primary.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          {primary.map((f) => (
+            <Field
+              key={f.key}
+              label={f.label}
+              unit={f.unit}
+              inputMode="decimal"
+              placeholder={str(lastValues[f.key])}
+              error={errors[f.key]?.message}
+              {...register(f.key)}
+            />
+          ))}
+        </div>
+      )}
       <Field
         label="Date & time"
         type="datetime-local"
@@ -106,7 +141,7 @@ export function WeighInForm({
       </button>
       {expanded && (
         <div className="grid grid-cols-2 gap-3">
-          {visible.map((f) => (
+          {extra.map((f) => (
             <Field
               key={f.key}
               label={f.label}
@@ -126,6 +161,24 @@ export function WeighInForm({
         </div>
       )}
 
+      {outlierFrom != null && (
+        <div role="alert" className="rounded-xl border border-bad/40 bg-bad/10 p-3 text-sm">
+          <p>
+            That's very different from your last weigh-in ({outlierFrom.toFixed(1)} kg). Check
+            that the number is your weight, not body fat or muscle.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              outlierConfirmed.current = true;
+              void submit();
+            }}
+            className="mt-2 rounded-lg bg-surface px-3 py-1.5 font-medium"
+          >
+            Save anyway
+          </button>
+        </div>
+      )}
       {formError && (
         <p role="alert" className="text-sm text-bad">
           {formError}

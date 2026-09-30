@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { type LogTab, useLogSheet } from "../components/AppLayout";
 import { EmptyState, ErrorState, Spinner } from "../components/EmptyState";
 import { GoalProgress } from "../components/GoalProgress";
+import { RecentWeighIns } from "../components/RecentWeighIns";
 import { StatCard } from "../components/StatCard";
 import type { Direction } from "../lib/format";
 import { useDashboard } from "../lib/queries";
@@ -103,6 +104,8 @@ export function Home() {
           />
         ))}
       </section>
+
+      <RecentWeighIns />
 
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-muted">Goals</h2>
