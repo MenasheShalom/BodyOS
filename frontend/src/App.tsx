@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router";
 import { RequireAuth } from "./auth/RequireAuth";
 import { RequireProfile } from "./auth/RequireProfile";
 import { AppLayout } from "./components/AppLayout";
+import { Food } from "./pages/Food";
 import { Goals } from "./pages/Goals";
 import { History } from "./pages/History";
 import { Home } from "./pages/Home";
@@ -27,6 +28,7 @@ export function App() {
           }
         >
           <Route index element={<Home />} />
+          <Route path="food" element={<Food />} />
           <Route path="trends" element={<Trends />} />
           <Route path="more" element={<More />} />
           <Route path="history" element={<History />} />

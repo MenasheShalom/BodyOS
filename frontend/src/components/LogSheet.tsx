@@ -5,7 +5,7 @@ import { PhotoForm } from "../forms/PhotoForm";
 import { WeighInForm } from "../forms/WeighInForm";
 import { latestByPose, useUploadPhoto } from "../lib/photos";
 import { bodyEntries, measurements, usePhotos, useProfile } from "../lib/queries";
-import type { LogTab } from "./AppLayout";
+import type { FoodTarget, LogTab } from "./AppLayout";
 
 const TABS: { key: LogTab; label: string }[] = [
   { key: "weigh-in", label: "Weigh-in" },
@@ -13,7 +13,9 @@ const TABS: { key: LogTab; label: string }[] = [
   { key: "photo", label: "Photo" },
 ];
 
-export function LogSheet({ initialTab, onClose }: { initialTab: LogTab; onClose: () => void }) {
+type Props = { initialTab: LogTab; food?: FoodTarget; onClose: () => void };
+
+export function LogSheet({ initialTab, onClose }: Props) {
   const [tab, setTab] = useState<LogTab>(initialTab);
   const profile = useProfile();
   const entries = bodyEntries.useList();

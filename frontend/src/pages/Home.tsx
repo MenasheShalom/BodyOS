@@ -1,3 +1,4 @@
+import { ChevronRight, Images } from "lucide-react";
 import { Link } from "react-router";
 import { type LogTab, useLogSheet } from "../components/AppLayout";
 import { EmptyState, ErrorState, Spinner } from "../components/EmptyState";
@@ -106,6 +107,16 @@ export function Home() {
       </section>
 
       <RecentWeighIns />
+
+      <Link
+        to="/photos"
+        className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 text-sm"
+      >
+        <span className="flex items-center gap-2">
+          <Images size={18} className="text-muted" /> Progress photos
+        </span>
+        <ChevronRight size={18} className="text-muted" />
+      </Link>
 
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-muted">Goals</h2>
