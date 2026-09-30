@@ -1,13 +1,17 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { MeasurementForm } from "../forms/MeasurementForm";
 import { PhotoForm } from "../forms/PhotoForm";
 import { WeighInForm } from "../forms/WeighInForm";
+import { defaultMeal, isoDay } from "../lib/meals";
 import { latestByPose, useUploadPhoto } from "../lib/photos";
 import { bodyEntries, measurements, usePhotos, useProfile } from "../lib/queries";
 import type { FoodTarget, LogTab } from "./AppLayout";
+import { AddFood } from "./nutrition/AddFood";
 
 const TABS: { key: LogTab; label: string }[] = [
+  { key: "food", label: "Food" },
   { key: "weigh-in", label: "Weigh-in" },
   { key: "measurements", label: "Measurements" },
   { key: "photo", label: "Photo" },
@@ -15,8 +19,13 @@ const TABS: { key: LogTab; label: string }[] = [
 
 type Props = { initialTab: LogTab; food?: FoodTarget; onClose: () => void };
 
-export function LogSheet({ initialTab, onClose }: Props) {
+export function LogSheet({ initialTab, food = {}, onClose }: Props) {
   const [tab, setTab] = useState<LogTab>(initialTab);
+  const navigate = useNavigate();
+  const [foodTarget] = useState(() => ({
+    day: food.day ?? isoDay(new Date()),
+    meal: food.meal ?? defaultMeal(new Date()),
+  }));
   const profile = useProfile();
   const entries = bodyEntries.useList();
   const tapes = measurements.useList();
@@ -70,6 +79,17 @@ export function LogSheet({ initialTab, onClose }: Props) {
           </button>
         </div>
 
+        {tab === "food" && (
+          <AddFood
+            day={foodTarget.day}
+            meal={foodTarget.meal}
+            onDone={onClose}
+            onCreateFood={(prefill) => {
+              onClose();
+              void navigate("/nutrition/foods/new", { state: { prefill } });
+            }}
+          />
+        )}
         {tab === "weigh-in" && (
           <WeighInForm
             hiddenMetrics={profile.data?.hidden_metrics ?? []}

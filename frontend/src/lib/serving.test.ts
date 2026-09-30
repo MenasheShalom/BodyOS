@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { amountLabel, gramsFor, nutrientsFor, servingsFor } from "./serving";
+import { amountLabel, choiceGrams, gramsFor, nutrientsFor, servingsFor } from "./serving";
 
 const food = {
   is_liquid: false,
@@ -32,5 +32,20 @@ describe("serving", () => {
       "250 ml",
     );
     expect(amountLabel({ grams: null, serving_label: null, serving_count: null })).toBe("");
+  });
+});
+
+describe("choiceGrams", () => {
+  const servings = [
+    { label: "100 g", grams: 100 },
+    { label: "1 slice", grams: 28 },
+  ];
+  it("multiplies the chosen serving by a count typed with a comma", () => {
+    expect(choiceGrams(servings, { index: 1, count: "1,5" })).toBe(42);
+  });
+  it("rejects empty, zero or huge counts", () => {
+    expect(choiceGrams(servings, { index: 1, count: "" })).toBeNull();
+    expect(choiceGrams(servings, { index: 1, count: "0" })).toBeNull();
+    expect(choiceGrams(servings, { index: 1, count: "101" })).toBeNull();
   });
 });

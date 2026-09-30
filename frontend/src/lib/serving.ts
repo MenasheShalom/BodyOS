@@ -34,3 +34,18 @@ export function amountLabel(
   const count = Number(entry.serving_count.toFixed(2));
   return count === 1 ? entry.serving_label! : `${count} × ${entry.serving_label}`;
 }
+
+/** The serving picker's state: which serving, and a count as typed (comma decimals allowed). */
+export type ServingChoice = { index: number; count: string };
+
+export function parseCount(raw: string): number | null {
+  const n = Number(raw.replace(",", "."));
+  return raw.trim() === "" || Number.isNaN(n) || n <= 0 || n > 100 ? null : n;
+}
+
+/** Grams for a serving choice, or null while the count is invalid. */
+export function choiceGrams(servings: Serving[], choice: ServingChoice): number | null {
+  const count = parseCount(choice.count);
+  const serving = servings[choice.index];
+  return count == null || !serving ? null : gramsFor(serving, count);
+}
