@@ -9,7 +9,7 @@ vi.mock("./api", async (orig) => ({
 }));
 
 import { api } from "./api";
-import { bodyEntries, qk } from "./queries";
+import { bodyEntries, qk, useLogFood } from "./queries";
 
 describe("mutations", () => {
   it("creating a body entry invalidates list, series, dashboard and goals", async () => {
@@ -23,6 +23,30 @@ describe("mutations", () => {
     await act(() => result.current.mutateAsync({ weight_kg: 80 } as never));
 
     expect(api).toHaveBeenCalledWith("/body-entries", { method: "POST", json: { weight_kg: 80 } });
+    for (const key of keys) {
+      expect(qc.getQueryState(key)?.isInvalidated).toBe(true);
+    }
+  });
+
+  it("logging food invalidates the food day and the dashboard", async () => {
+    const qc = new QueryClient();
+    const keys = [qk.foodDay("2026-09-30"), qk.dashboard];
+    for (const key of keys) qc.setQueryData(key, { cached: true });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useLogFood(), { wrapper });
+    const body = {
+      food_id: "f1",
+      grams: 60,
+      serving_label: null,
+      serving_count: null,
+      meal: "lunch" as const,
+      eaten_at: "2026-09-30T10:00:00.000Z",
+    };
+    await act(() => result.current.mutateAsync(body));
+
+    expect(api).toHaveBeenCalledWith("/food-log", { method: "POST", json: body });
     for (const key of keys) {
       expect(qc.getQueryState(key)?.isInvalidated).toBe(true);
     }

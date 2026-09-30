@@ -8,7 +8,15 @@ from psycopg import sql
 
 from app.db import Conn
 
-Table = Literal["body_entries", "measurements", "progress_photos", "goals"]
+Table = Literal[
+    "body_entries",
+    "measurements",
+    "progress_photos",
+    "goals",
+    "foods",
+    "food_log",
+    "nutrition_targets",
+]
 
 
 def require(row: dict[str, Any] | None) -> dict[str, Any]:

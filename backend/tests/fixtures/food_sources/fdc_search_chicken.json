@@ -1,0 +1,33 @@
+{
+  "totalHits": 2,
+  "currentPage": 1,
+  "totalPages": 1,
+  "foods": [
+    {
+      "fdcId": 171477,
+      "description": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+      "dataType": "SR Legacy",
+      "foodNutrients": [
+        {"nutrientId": 1003, "nutrientName": "Protein", "nutrientNumber": "203", "unitName": "G", "value": 31},
+        {"nutrientId": 1004, "nutrientName": "Total lipid (fat)", "nutrientNumber": "204", "unitName": "G", "value": 3.57},
+        {"nutrientId": 1005, "nutrientName": "Carbohydrate, by difference", "nutrientNumber": "205", "unitName": "G", "value": 0},
+        {"nutrientId": 1008, "nutrientName": "Energy", "nutrientNumber": "208", "unitName": "KCAL", "value": 165},
+        {"nutrientId": 1062, "nutrientName": "Energy", "nutrientNumber": "268", "unitName": "kJ", "value": 690},
+        {"nutrientId": 1093, "nutrientName": "Sodium, Na", "nutrientNumber": "307", "unitName": "MG", "value": 74},
+        {"nutrientId": 1092, "nutrientName": "Potassium, K", "nutrientNumber": "306", "unitName": "MG", "value": 256},
+        {"nutrientId": 1178, "nutrientName": "Vitamin B-12", "nutrientNumber": "418", "unitName": "UG", "value": 0.34},
+        {"nutrientId": 1095, "nutrientName": "Zinc, Zn", "nutrientNumber": "309", "unitName": "MG", "value": 1}
+      ]
+    },
+    {
+      "fdcId": 2646170,
+      "description": "Chicken, breast, boneless, skinless, raw",
+      "dataType": "Foundation",
+      "foodNutrients": [
+        {"nutrientId": 1003, "nutrientName": "Protein", "nutrientNumber": "203", "unitName": "G", "value": 22.5},
+        {"nutrientId": 1004, "nutrientName": "Total lipid (fat)", "nutrientNumber": "204", "unitName": "G", "value": 1.93},
+        {"nutrientId": 2047, "nutrientName": "Energy (Atwater General Factors)", "nutrientNumber": "957", "unitName": "KCAL", "value": 107}
+      ]
+    }
+  ]
+}

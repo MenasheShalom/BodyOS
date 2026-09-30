@@ -22,7 +22,17 @@ SHIM = pathlib.Path(__file__).parent / "sql" / "supabase_shim.sql"
 TEST_DB_URL = os.environ.get(
     "TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/bodyos_test"
 )
-TABLES = ["goals", "progress_photos", "measurements", "body_entries", "profiles"]
+TABLES = [
+    "food_log",
+    "nutrition_targets",
+    "nutrition_settings",
+    "foods",
+    "goals",
+    "progress_photos",
+    "measurements",
+    "body_entries",
+    "profiles",
+]
 
 
 @pytest.fixture(scope="session")

@@ -7,7 +7,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
-from app.routers import body_entries, dashboard, goals, measurements, photos, profile, series
+from app.routers import (
+    body_entries,
+    dashboard,
+    food_log,
+    foods,
+    goals,
+    measurements,
+    nutrition,
+    photos,
+    profile,
+    series,
+)
 
 logger = logging.getLogger("bodyos")
 
@@ -53,6 +64,9 @@ def create_app() -> FastAPI:
     app.include_router(goals.router)
     app.include_router(photos.router)
     app.include_router(dashboard.router)
+    app.include_router(foods.router)
+    app.include_router(food_log.router)
+    app.include_router(nutrition.router)
 
     return app
 

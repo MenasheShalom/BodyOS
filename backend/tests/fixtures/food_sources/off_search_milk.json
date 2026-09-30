@@ -1,0 +1,36 @@
+{
+  "count": 3,
+  "page": 1,
+  "page_size": 20,
+  "products": [
+    {
+      "code": "3274080005003",
+      "product_name": "Lait demi-écrémé",
+      "product_name_en": "Semi-skimmed milk",
+      "brands": "Lactel",
+      "countries_tags": ["en:france"],
+      "product_quantity_unit": "ml",
+      "serving_size": "250 ml",
+      "serving_quantity": "250",
+      "nutriments": {"energy-kcal_100g": 46, "proteins_100g": 3.2, "carbohydrates_100g": 4.8, "fat_100g": 1.5}
+    },
+    {
+      "code": "7290004131074",
+      "product_name": "חלב 3% שומן",
+      "product_name_en": "Milk 3% fat",
+      "brands": "תנובה",
+      "countries_tags": ["en:israel"],
+      "product_quantity_unit": "ml",
+      "serving_size": "250 ml",
+      "serving_quantity": 250,
+      "nutriments": {"energy-kcal_100g": 60, "proteins_100g": 3.3, "carbohydrates_100g": 4.7, "fat_100g": 3}
+    },
+    {
+      "code": "5000000000001",
+      "product_name": "",
+      "brands": "Nameless",
+      "countries_tags": ["en:united-kingdom"],
+      "nutriments": {"energy-kcal_100g": 40}
+    }
+  ]
+}

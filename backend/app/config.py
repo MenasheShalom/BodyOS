@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,6 +13,10 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str | None = None
     cors_origins: list[str] = ["http://localhost:5173"]
     photo_bucket: str = "progress-photos"
+    usda_api_key: str = "DEMO_KEY"
+    off_user_agent: str = "BodyOS/0.2 (personal nutrition tracker)"
+    # "fake" serves built-in demo foods instead of calling OFF/USDA (end-to-end tests)
+    food_sources: Literal["live", "fake"] = "live"
 
 
 @lru_cache

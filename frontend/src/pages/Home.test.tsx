@@ -78,6 +78,10 @@ describe("Home", () => {
     expect(screen.getByText("Last weigh-in: 3 days ago")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Set a goal/ })).toHaveAttribute("href", "/goals");
     expect(screen.getByText("recent weigh-ins")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Progress photos/ })).toHaveAttribute(
+      "href",
+      "/photos",
+    );
   });
 });
 

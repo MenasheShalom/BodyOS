@@ -1,0 +1,21 @@
+{
+  "totalHits": 1,
+  "foods": [
+    {
+      "fdcId": 2099999,
+      "description": "GREEK YOGURT, PLAIN",
+      "dataType": "Branded",
+      "brandOwner": "Fage",
+      "gtinUpc": "0689544080145",
+      "servingSize": 170,
+      "servingSizeUnit": "g",
+      "householdServingFullText": "1 container",
+      "foodNutrients": [
+        {"nutrientId": 1008, "unitName": "KCAL", "value": 59},
+        {"nutrientId": 1003, "unitName": "G", "value": 10.3},
+        {"nutrientId": 1004, "unitName": "G", "value": 0.4},
+        {"nutrientId": 1005, "unitName": "G", "value": 3.6}
+      ]
+    }
+  ]
+}

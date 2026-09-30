@@ -1,0 +1,21 @@
+{
+  "fdcId": 171705,
+  "description": "Avocados, raw, all commercial varieties",
+  "dataType": "SR Legacy",
+  "foodNutrients": [
+    {"type": "FoodNutrient", "nutrient": {"id": 1008, "number": "208", "name": "Energy", "unitName": "kcal"}, "amount": 160},
+    {"type": "FoodNutrient", "nutrient": {"id": 1003, "number": "203", "name": "Protein", "unitName": "g"}, "amount": 2},
+    {"type": "FoodNutrient", "nutrient": {"id": 1004, "number": "204", "name": "Total lipid (fat)", "unitName": "g"}, "amount": 14.66},
+    {"type": "FoodNutrient", "nutrient": {"id": 1005, "number": "205", "name": "Carbohydrate, by difference", "unitName": "g"}, "amount": 8.53},
+    {"type": "FoodNutrient", "nutrient": {"id": 1079, "number": "291", "name": "Fiber, total dietary", "unitName": "g"}, "amount": 6.7},
+    {"type": "FoodNutrient", "nutrient": {"id": 1092, "number": "306", "name": "Potassium, K", "unitName": "mg"}, "amount": 485},
+    {"type": "FoodNutrient", "nutrient": {"id": 1162, "number": "401", "name": "Vitamin C, total ascorbic acid", "unitName": "mg"}, "amount": 10},
+    {"type": "FoodNutrient", "nutrient": {"id": 1190, "number": "435", "name": "Folate, DFE", "unitName": "µg"}, "amount": 81}
+  ],
+  "foodPortions": [
+    {"id": 1, "amount": 1, "modifier": "cup, cubes", "gramWeight": 150, "measureUnit": {"name": "undetermined"}},
+    {"id": 2, "amount": 0.5, "modifier": "fruit, without skin and seed", "gramWeight": 68, "measureUnit": {"name": "undetermined"}},
+    {"id": 3, "amount": 1, "modifier": "cup, cubes", "gramWeight": 150, "measureUnit": {"name": "undetermined"}},
+    {"id": 4, "amount": 1, "portionDescription": "Quantity not specified", "gramWeight": 0, "measureUnit": {"name": "undetermined"}}
+  ]
+}
