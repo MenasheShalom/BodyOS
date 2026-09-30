@@ -19,6 +19,7 @@ from app.routers import (
     photos,
     profile,
     recipes,
+    saved_meals,
     series,
 )
 
@@ -71,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(nutrition.router)
     app.include_router(favourites.router)
     app.include_router(recipes.router)
+    app.include_router(saved_meals.router)
 
     return app
 

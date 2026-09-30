@@ -279,3 +279,59 @@ class RecipeOut(BaseModel):
     serving_grams: float
     per_serving: dict[str, float]
     incomplete_nutrients: list[str]
+
+
+class SavedMealItemIn(BaseModel):
+    """A food (by id and amount) or a quick add (name and numbers)."""
+
+    food_id: UUID | None = None
+    grams: float | None = Field(default=None, ge=0.1, le=5000)
+    serving_label: Annotated[str, StringConstraints(max_length=100)] | None = None
+    serving_count: float | None = Field(default=None, gt=0, le=100)
+    name: Name | None = None
+    nutrients: dict[str, float] | None = None
+
+    @model_validator(mode="after")
+    def _one_kind(self) -> Self:
+        if self.food_id is not None:
+            if self.grams is None:
+                raise ValueError("Enter an amount")
+            if self.nutrients is not None:
+                raise ValueError("A food item takes an amount, not nutrients")
+        else:
+            if self.nutrients is None:
+                raise ValueError("Choose a food or enter calories")
+            self.nutrients = validate_quick_nutrients(self.nutrients)
+        return self
+
+
+class SavedMealIn(BaseModel):
+    name: Name
+    items: list[SavedMealItemIn] = Field(min_length=1, max_length=30)
+
+
+class SavedMealFromLogIn(BaseModel):
+    name: Name
+    day: date
+    meal: Meal
+
+
+class SavedMealLogIn(BaseModel):
+    meal: Meal
+    eaten_at: AwareDatetime
+
+
+class SavedMealItemOut(BaseModel):
+    food_id: UUID | None
+    name: str
+    grams: float | None
+    serving_label: str | None
+    serving_count: float | None
+    nutrients: dict[str, float]
+
+
+class SavedMealOut(BaseModel):
+    id: UUID
+    name: str
+    items: list[SavedMealItemOut]
+    totals: dict[str, float]
