@@ -231,3 +231,16 @@ class RecentFoodOut(BaseModel):
     serving_label: str | None
     serving_count: float | None
     last_eaten_at: datetime
+
+
+class CopyIn(BaseModel):
+    from_day: date
+    to_day: date
+    meal: Meal | None = None  # None copies the whole day
+    to_meal: Meal | None = None  # defaults to the same meal
+
+    @model_validator(mode="after")
+    def _to_meal_needs_meal(self) -> Self:
+        if self.to_meal is not None and self.meal is None:
+            raise ValueError("Choose which meal to copy")
+        return self
