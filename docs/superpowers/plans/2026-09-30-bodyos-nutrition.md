@@ -976,6 +976,17 @@ Override `get_food_sources` with fakes in a fixture `sources`.
 
 ---
 
+### Phase 1 implementation notes
+
+Deviations from the steps above, made while building Phase 1:
+
+- **Fixtures are hand-built** from the documented OFF and FDC response formats (Task 3). The build environment's network policy blocked both APIs. Before relying on live data, run `backend/scripts/record_food_fixtures.py` from a machine that can reach them, and fix any field name the live payloads disagree on.
+- **Nutrition schemas** live in `app/nutrition_schemas.py`, not `app/schemas.py`, which was already long.
+- **Custom food edits use `PUT /foods/{id}`** (full replacement), not PATCH. The form always sends every field.
+- **Services:** `app/services/food_log_service.py` holds the day view and `target_on()`, which Phase 3's check-in and dashboard reuse.
+- **Food editor routes:** `/nutrition/foods/new` (optionally prefilled from a database food via router state) and `/nutrition/foods/:id`.
+- **E2E ordering:** the e2e spec relies on running after `flows.spec.ts` (same user, already onboarded, with a weigh-in).
+
 ## Phase 2 — Speed (outline, expand before starting)
 
 | # | Task | Key points |
