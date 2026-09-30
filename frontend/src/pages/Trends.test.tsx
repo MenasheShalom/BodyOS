@@ -7,6 +7,7 @@ const useSeries = vi.fn();
 vi.mock("../lib/queries", () => ({
   useSeries: (...a: unknown[]) => useSeries(...a),
   goals: { useList: () => ({ data: [] }) },
+  useProfile: () => ({ data: { height_cm: 168 } }),
 }));
 vi.mock("../components/charts/TrendChart", () => ({
   TrendChart: () => <div data-testid="chart" />,
@@ -57,5 +58,31 @@ describe("Trends", () => {
       </MemoryRouter>,
     );
     expect(screen.getByText("Not enough data yet")).toBeInTheDocument();
+  });
+
+  it("explains the BMI zone and the healthy weight for your height", () => {
+    useSeries.mockReturnValue({
+      data: { ...full, metric: "bmi", label: "BMI", unit: "", latest: 26.2 },
+      isPending: false,
+    });
+    render(
+      <MemoryRouter initialEntries={["/trends?metric=bmi"]}>
+        <Trends />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("You're in the Overweight range (BMI 26.2)")).toBeInTheDocument();
+    expect(
+      screen.getByText("Healthy BMI (18.5–24.9) for 168 cm is 52.2–70.3 kg"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows no BMI summary for other metrics", () => {
+    useSeries.mockReturnValue({ data: full, isPending: false });
+    render(
+      <MemoryRouter>
+        <Trends />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText(/You're in the/)).not.toBeInTheDocument();
   });
 });

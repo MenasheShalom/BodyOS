@@ -1,9 +1,10 @@
 import { useSearchParams } from "react-router";
 import { TrendChart } from "../components/charts/TrendChart";
 import { EmptyState, ErrorState, Spinner } from "../components/EmptyState";
+import { bmiZone, healthyWeightRange } from "../lib/bmi";
 import { formatChange, formatValue } from "../lib/format";
 import { SERIES_METRICS } from "../lib/metrics";
-import { goals, useSeries } from "../lib/queries";
+import { goals, useProfile, useSeries } from "../lib/queries";
 import type { RangeKey } from "../lib/types";
 
 const RANGES: RangeKey[] = ["1M", "3M", "6M", "1Y", "ALL"];
@@ -55,6 +56,7 @@ export function Trends() {
   const primary = useSeries(metric, range, true);
   const secondary = useSeries(vs ?? metric, range, vs !== null);
   const goalList = goals.useList();
+  const profile = useProfile();
   const goalValue =
     goalList.data?.find((g) => g.metric === metric && g.status === "active")?.target_value ??
     null;
@@ -124,6 +126,21 @@ export function Trends() {
               goalValue={goalValue}
             />
           </div>
+          {metric === "bmi" && s.latest != null && (
+            <div className="space-y-1 rounded-2xl bg-surface p-4 text-sm">
+              <p className="font-medium">
+                You're in the {bmiZone(s.latest)} range (BMI {s.latest.toFixed(1)})
+              </p>
+              {profile.data && (
+                <p className="text-muted">
+                  {(() => {
+                    const [lo, hi] = healthyWeightRange(profile.data.height_cm);
+                    return `Healthy BMI (18.5–24.9) for ${profile.data.height_cm} cm is ${lo.toFixed(1)}–${hi.toFixed(1)} kg`;
+                  })()}
+                </p>
+              )}
+            </div>
+          )}
           <dl className="grid grid-cols-2 gap-2 md:grid-cols-4">
             {[
               ["Change", formatChange(s.change, s.unit)],
