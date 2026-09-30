@@ -16,6 +16,8 @@ Table = Literal[
     "foods",
     "food_log",
     "nutrition_targets",
+    "recipes",
+    "saved_meals",
 ]
 
 

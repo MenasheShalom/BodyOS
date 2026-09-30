@@ -11,6 +11,7 @@ from app.nutrition_schemas import CustomFoodIn, FoodOut, FoodSearchOut, ImportIn
 from app.services.food_service import (
     FOOD_COLUMNS,
     SourcesUnavailable,
+    food_in_use,
     food_out,
     import_food,
     lookup_barcode,
@@ -157,9 +158,8 @@ def delete_food(
 ) -> Response:
     if own_custom_food(conn, user_id, food_id) is None:
         raise HTTPException(status_code=404, detail="Not found")
-    logged = conn.execute("select 1 from food_log where food_id = %s limit 1", (food_id,))
-    if logged.fetchone() is not None:
-        # past days still point at it; hide it from search and lists instead
+    if food_in_use(conn, food_id):
+        # past days, recipes or saved meals still point at it; hide it instead
         conn.execute("update foods set archived = true where id = %s", (food_id,))
     else:
         conn.execute("delete from foods where id = %s", (food_id,))

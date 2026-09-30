@@ -165,3 +165,85 @@ def test_settings_defaults(db, make_user) -> None:
         6,
         "en:israel",
     )
+
+
+# --- Phase 2: favourites, recipes, saved meals ------------------------------------------
+
+
+def _recipe(conn: psycopg.Connection, user_id: uuid.UUID) -> uuid.UUID:
+    row = conn.execute(
+        "insert into recipes (user_id, name, servings) values (%s, 'Stew', 4) returning id",
+        (user_id,),
+    ).fetchone()
+    assert row is not None
+    return row[0]
+
+
+def test_favourites_hidden_from_other_users(db, make_user) -> None:
+    a, b = make_user(), make_user()
+    with psycopg.connect(db) as conn:
+        food_id = _shared_food(conn)
+        conn.execute("insert into food_favourites (user_id, food_id) values (%s, %s)", (a, food_id))
+        _as_user(conn, b)
+        assert conn.execute("select * from food_favourites").fetchall() == []
+
+
+def test_saved_meal_item_needs_food_or_nutrients(db, make_user) -> None:
+    a = make_user()
+    with psycopg.connect(db) as conn:
+        meal = conn.execute(
+            "insert into saved_meals (user_id, name) values (%s, 'Breakfast') returning id", (a,)
+        ).fetchone()
+        assert meal is not None
+        food_id = _custom_food(conn, a)
+        sql = (
+            "insert into saved_meal_items (saved_meal_id, user_id, food_id, name, grams, nutrients)"
+            " values (%s, %s, %s, 'x', %s, %s)"
+        )
+        conn.execute(sql, (meal[0], a, food_id, 30, None))
+        conn.execute(sql, (meal[0], a, None, None, KCAL))
+        with pytest.raises(psycopg.errors.CheckViolation):
+            conn.execute(sql, (meal[0], a, food_id, 30, KCAL))
+
+
+def test_recipe_food_needs_recipe_id(db, make_user) -> None:
+    a = make_user()
+    with psycopg.connect(db) as conn:
+        recipe_id = _recipe(conn, a)
+        conn.execute(
+            "insert into foods (user_id, source, name, nutrients_per_100g, recipe_id)"
+            " values (%s, 'recipe', 'Stew', %s, %s)",
+            (a, KCAL, recipe_id),
+        )
+        with pytest.raises(psycopg.errors.CheckViolation):
+            conn.execute(
+                "insert into foods (user_id, source, name, nutrients_per_100g)"
+                " values (%s, 'recipe', 'Stew', %s)",
+                (a, KCAL),
+            )
+
+
+def test_food_used_in_recipe_cannot_be_hard_deleted(db, make_user) -> None:
+    a = make_user()
+    with psycopg.connect(db) as conn:
+        recipe_id = _recipe(conn, a)
+        food_id = _custom_food(conn, a)
+        conn.execute(
+            "insert into recipe_items (recipe_id, user_id, food_id, grams) values (%s, %s, %s, 50)",
+            (recipe_id, a, food_id),
+        )
+        with pytest.raises(psycopg.errors.ForeignKeyViolation):
+            conn.execute("delete from foods where id = %s", (food_id,))
+
+
+def test_deleting_recipe_removes_its_food(db, make_user) -> None:
+    a = make_user()
+    with psycopg.connect(db) as conn:
+        recipe_id = _recipe(conn, a)
+        conn.execute(
+            "insert into foods (user_id, source, name, nutrients_per_100g, recipe_id)"
+            " values (%s, 'recipe', 'Stew', %s, %s)",
+            (a, KCAL, recipe_id),
+        )
+        conn.execute("delete from recipes where id = %s", (recipe_id,))
+        assert conn.execute("select count(*) from foods").fetchone() == (0,)
