@@ -54,6 +54,21 @@ test("onboard, log weigh-ins and see them on Home and Trends", async ({ page }) 
   await page.goto("/trends?metric=weight_kg&range=1M");
   await expect(page.getByText("Weekly rate")).toBeVisible();
   await expect(page.getByText("Low", { exact: true })).toBeVisible();
+
+  // Fix and remove weigh-ins straight from Home.
+  await page.goto("/");
+  const recent = page.getByRole("button", { name: /Edit weigh-in from/ });
+  await expect(recent).toHaveCount(2);
+  await recent.first().click();
+  await page.getByLabel("Weight").fill("81.6");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(page.getByText("81.6 kg")).toBeVisible();
+
+  page.once("dialog", (d) => void d.accept());
+  await recent.first().click();
+  await page.getByRole("button", { name: "Delete weigh-in" }).click();
+  await expect(recent).toHaveCount(1);
 });
 
 test("upload progress photos and compare them", async ({ page }) => {

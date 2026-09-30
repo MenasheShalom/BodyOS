@@ -85,4 +85,44 @@ describe("WeighInForm", () => {
     expect(screen.getByLabelText("Weight")).toHaveValue("81.5");
     expect(screen.getByLabelText("Body fat")).toHaveValue("18");
   });
+
+  it("shows body fat and muscle mass without expanding, keeps the rest behind More fields", () => {
+    render(<WeighInForm hiddenMetrics={[]} onSubmit={vi.fn()} />);
+    expect(screen.getByLabelText("Body fat")).toBeInTheDocument();
+    expect(screen.getByLabelText("Muscle mass")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Body water")).not.toBeInTheDocument();
+  });
+
+  it("saves body fat typed in the always-visible field", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<WeighInForm hiddenMetrics={[]} onSubmit={onSubmit} />);
+    await userEvent.type(screen.getByLabelText("Weight"), "74");
+    await userEvent.type(screen.getByLabelText("Body fat"), "22.8");
+    await userEvent.type(screen.getByLabelText("Muscle mass"), "55,1");
+    await userEvent.click(screen.getByRole("button", { name: "Save weigh-in" }));
+    const payload = onSubmit.mock.calls[0][0];
+    expect(payload).toMatchObject({ weight_kg: 74, body_fat_pct: 22.8, muscle_mass_kg: 55.1 });
+  });
+
+  it("asks before saving a weight far from the last one", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<WeighInForm hiddenMetrics={[]} lastValues={{ weight_kg: 74 }} onSubmit={onSubmit} />);
+    await userEvent.type(screen.getByLabelText("Weight"), "22.8");
+    await userEvent.click(screen.getByRole("button", { name: "Save weigh-in" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "That's very different from your last weigh-in (74.0 kg).",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Save anyway" }));
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(onSubmit.mock.calls[0][0].weight_kg).toBe(22.8);
+  });
+
+  it("saves a normal change without asking", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<WeighInForm hiddenMetrics={[]} lastValues={{ weight_kg: 74 }} onSubmit={onSubmit} />);
+    await userEvent.type(screen.getByLabelText("Weight"), "73.2");
+    await userEvent.click(screen.getByRole("button", { name: "Save weigh-in" }));
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
 });
