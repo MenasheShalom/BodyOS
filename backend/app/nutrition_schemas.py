@@ -180,3 +180,46 @@ class FoodDayOut(BaseModel):
     totals: dict[str, float]
     coverage: dict[str, float]
     target: TargetsOut | None
+
+
+Mode = Literal["recomp", "cut", "maintain", "lean_bulk"]
+ActivityLevel = Literal["sedentary", "light", "moderate", "very"]
+# OFF country tags used to rank search results; en:world turns ranking off.
+FoodCountry = Literal["en:israel", "en:united-states", "en:united-kingdom", "en:world"]
+
+
+class NutritionSettingsIn(BaseModel):
+    mode: Mode = "recomp"
+    deficit_pct: float | None = Field(default=None, ge=-10, le=25)  # None: the mode's default
+    protein_g_per_kg: float = Field(default=2.0, ge=1.4, le=3.0)
+    activity_level: ActivityLevel = "light"
+    check_in_weekday: int = Field(default=6, ge=0, le=6)  # Monday = 0, Sunday = 6
+    food_country: FoodCountry = "en:israel"
+
+
+class NutritionSettingsOut(NutritionSettingsIn):
+    configured: bool
+
+
+class MacroTargets(BaseModel):
+    energy_kcal: int = Field(ge=800, le=6000)
+    protein_g: int = Field(ge=0, le=500)
+    carbs_g: int = Field(ge=0, le=1000)
+    fat_g: int = Field(ge=0, le=400)
+    fiber_g: int = Field(ge=0, le=150)
+
+
+class TargetsIn(MacroTargets):
+    effective_from: date
+    origin: TargetOrigin
+    tdee_at_creation: int | None = Field(default=None, ge=500, le=10000)
+
+
+class EstimateOut(BaseModel):
+    bmr: int
+    tdee: int
+    method: Literal["katch", "mifflin"]
+    activity_factor: float
+    weight_kg: float
+    lean_mass_kg: float | None
+    targets: MacroTargets
