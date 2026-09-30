@@ -1,0 +1,28 @@
+{
+  "code": "7290004131074",
+  "status": 1,
+  "status_verbose": "product found",
+  "product": {
+    "code": "7290004131074",
+    "product_name": "חלב 3% שומן",
+    "product_name_en": "Milk 3% fat",
+    "brands": "תנובה",
+    "countries_tags": ["en:israel"],
+    "quantity": "1 l",
+    "product_quantity_unit": "ml",
+    "serving_size": "250 ml",
+    "serving_quantity": 250,
+    "nutrition_data_per": "100g",
+    "nutriments": {
+      "energy-kcal_100g": 60,
+      "proteins_100g": 3.3,
+      "carbohydrates_100g": 4.7,
+      "sugars_100g": 4.7,
+      "fat_100g": 3,
+      "saturated-fat_100g": 1.9,
+      "sodium_100g": 0.044,
+      "calcium_100g": 0.12,
+      "vitamin-d_100g": 0.0000005
+    }
+  }
+}

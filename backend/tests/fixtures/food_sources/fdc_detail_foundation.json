@@ -1,0 +1,16 @@
+{
+  "fdcId": 2646170,
+  "description": "Chicken, breast, boneless, skinless, raw",
+  "dataType": "Foundation",
+  "foodNutrients": [
+    {"type": "FoodNutrient", "nutrient": {"id": 1003, "number": "203", "name": "Protein", "unitName": "g"}, "amount": 22.5},
+    {"type": "FoodNutrient", "nutrient": {"id": 1004, "number": "204", "name": "Total lipid (fat)", "unitName": "g"}, "amount": 1.93},
+    {"type": "FoodNutrient", "nutrient": {"id": 1005, "number": "205", "name": "Carbohydrate, by difference", "unitName": "g"}, "amount": 0},
+    {"type": "FoodNutrient", "nutrient": {"id": 2047, "number": "957", "name": "Energy (Atwater General Factors)", "unitName": "kcal"}, "amount": 107},
+    {"type": "FoodNutrient", "nutrient": {"id": 2048, "number": "958", "name": "Energy (Atwater Specific Factors)", "unitName": "kcal"}, "amount": 112},
+    {"type": "FoodNutrient", "nutrient": {"id": 1093, "number": "307", "name": "Sodium, Na", "unitName": "mg"}, "amount": 49.8},
+    {"type": "FoodNutrient", "nutrient": {"id": 1089, "number": "303", "name": "Iron, Fe", "unitName": "mg"}, "amount": 0.33},
+    {"type": "FoodNutrient", "nutrient": {"id": 1003, "number": "203", "name": "Protein", "unitName": "g"}}
+  ],
+  "foodPortions": []
+}
