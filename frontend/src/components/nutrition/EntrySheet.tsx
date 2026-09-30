@@ -112,7 +112,7 @@ export function EntrySheet({ entry, onClose }: { entry: FoodLogEntry; onClose: (
             </div>
           </>
         )}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block text-muted">Meal</span>
             <select

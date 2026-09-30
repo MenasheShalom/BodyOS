@@ -16,7 +16,9 @@ export function MealSection({ label, entries, onAdd, onOpen }: Props) {
     <section aria-label={label} className="rounded-2xl bg-surface">
       <div className="flex items-center justify-between px-4 pt-3">
         <h2 className="font-medium">{label}</h2>
-        <span className="tabular text-sm text-muted">{Math.round(kcal)} kcal</span>
+        <span className="tabular text-sm text-muted">
+          {Math.round(kcal).toLocaleString("en-GB")} kcal
+        </span>
       </div>
       {entries.length === 0 ? (
         <p className="px-4 py-2 text-sm text-muted">Nothing logged</p>
@@ -34,7 +36,7 @@ export function MealSection({ label, entries, onAdd, onOpen }: Props) {
                   <span className="block text-xs text-muted">{amountLabel(e) || "—"}</span>
                 </span>
                 <span className="tabular shrink-0 text-sm">
-                  {Math.round(e.nutrients.energy_kcal ?? 0)}
+                  {Math.round(e.nutrients.energy_kcal ?? 0).toLocaleString("en-GB")}
                 </span>
               </button>
             </li>

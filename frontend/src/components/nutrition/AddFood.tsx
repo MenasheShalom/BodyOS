@@ -146,7 +146,7 @@ export function AddFood({ day, meal, onDone, onCreateFood }: Props) {
               placeholder="Search foods (English or עברית)"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="w-full bg-transparent py-2.5 outline-none"
+              className="w-full bg-transparent py-2.5 outline-none focus-visible:outline-none"
             />
           </form>
 

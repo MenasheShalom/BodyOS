@@ -33,7 +33,8 @@ const MACROS: { key: "protein_g" | "carbs_g" | "fat_g"; label: string }[] = [
 type Props = { totals: Nutrients; target: MacroTargets | null };
 
 export function NutritionSummary({ totals, target }: Props) {
-  const kcal = totals.energy_kcal ?? 0;
+  const kcal = Math.round(totals.energy_kcal ?? 0);
+  // From the rounded figure shown, so "eaten + left" always adds up to the target.
   const remaining = target ? target.energy_kcal - kcal : null;
   return (
     <section aria-label="Daily summary" className="space-y-4 rounded-2xl bg-surface p-4">

@@ -53,7 +53,7 @@ export function LogSheet({ initialTab, food = {}, onClose }: Props) {
         className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-bg p-5 md:rounded-3xl"
       >
         <div className="mb-4 flex items-center justify-between">
-          <div role="tablist" className="flex gap-1 rounded-xl bg-surface-2 p-1">
+          <div role="tablist" className="flex gap-0.5 overflow-x-auto rounded-xl bg-surface-2 p-1">
             {TABS.map((t) => (
               <button
                 key={t.key}
@@ -61,7 +61,7 @@ export function LogSheet({ initialTab, food = {}, onClose }: Props) {
                 role="tab"
                 aria-selected={tab === t.key}
                 onClick={() => setTab(t.key)}
-                className={`rounded-lg px-3 py-1.5 text-sm ${
+                className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm ${
                   tab === t.key ? "bg-surface text-text shadow-sm" : "text-muted"
                 }`}
               >
