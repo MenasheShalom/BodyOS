@@ -1,7 +1,7 @@
 import { type Page, expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
-// Runs after nutrition.spec.ts with the same user: targets are set, and today's Breakfast
+// Runs after nutrition-1-core.spec.ts (files run in name order) with the same user: targets are set, and today's Breakfast
 // has 2 × 2 tbsp of Demo hummus (162 kcal). Food sources are the backend's fakes.
 const user = JSON.parse(readFileSync(new URL("./.user.json", import.meta.url), "utf8")) as {
   email: string;

@@ -93,7 +93,7 @@ frontend/src/
   forms/CustomFoodForm.tsx  forms/TargetsForm.tsx
   pages/Food.tsx  pages/MyFoods.tsx  pages/NutritionSetup.tsx  pages/Targets.tsx  pages/More.tsx (+ links)
   pages/Home.tsx (+ Photos shortcut)
-frontend/e2e/nutrition.spec.ts
+frontend/e2e/nutrition-1-core.spec.ts
 render.yaml  README.md                        + env vars
 ```
 
@@ -960,7 +960,7 @@ Override `get_food_sources` with fakes in a fixture `sources`.
 ### Task 14: End-to-end, config and docs
 
 **Files:**
-- Create: `frontend/e2e/nutrition.spec.ts`
+- Create: `frontend/e2e/nutrition-1-core.spec.ts`
 - Modify: `.github/workflows/ci.yml` (e2e: `FOOD_SOURCES=fake`), `render.yaml` (`USDA_API_KEY` sync: false, `OFF_USER_AGENT`, `FOOD_SOURCES=live`), `README.md` (env vars, USDA key signup, OFF attribution note)
 
 **Flows:**
@@ -985,7 +985,7 @@ Deviations from the steps above, made while building Phase 1:
 - **Custom food edits use `PUT /foods/{id}`** (full replacement), not PATCH. The form always sends every field.
 - **Services:** `app/services/food_log_service.py` holds the day view and `target_on()`, which Phase 3's check-in and dashboard reuse.
 - **Food editor routes:** `/nutrition/foods/new` (optionally prefilled from a database food via router state) and `/nutrition/foods/:id`.
-- **E2E ordering:** the e2e spec relies on running after `flows.spec.ts` (same user, already onboarded, with a weigh-in).
+- **E2E ordering:** the e2e spec relies on running after `flows.spec.ts` (files run in name order; same user, already onboarded, with a weigh-in).
 
 ## Phase 2 — Speed
 
@@ -1104,7 +1104,7 @@ Tests:
 - **MealSection:** "Copy from…" (a modal with day, default yesterday, and source meal, default this meal) and "Save as meal" (name prompt).
 - **Food page:** a "Copy another day…" link under the meals.
 - **Pages:** `/nutrition/recipes`, `/nutrition/recipes/new`, `/nutrition/recipes/:id` (builder with ingredient picker, grams, live per-serving totals and incomplete markers) and `/nutrition/meals` (list, view, delete). The Nutrition hub links to both.
-- **E2E (`nutrition-speed.spec.ts`):** log to yesterday then copy yesterday's breakfast to today, build a recipe and log one serving, manual barcode entry of the demo hummus.
+- **E2E (`nutrition-2-speed.spec.ts`):** log to yesterday then copy yesterday's breakfast to today, build a recipe and log one serving, manual barcode entry of the demo hummus.
 
 ## Phase 3 — Insight (outline, expand before starting)
 

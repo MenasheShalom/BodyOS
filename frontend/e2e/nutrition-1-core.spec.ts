@@ -1,7 +1,7 @@
 import { type Page, expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
-// Runs after flows.spec.ts with the same user, who has onboarded and has a weigh-in.
+// Runs after flows.spec.ts (files run in name order) with the same user, who has onboarded and has a weigh-in.
 // The backend runs with FOOD_SOURCES=fake, so "Demo hummus" comes from the fake OFF source.
 const user = JSON.parse(readFileSync(new URL("./.user.json", import.meta.url), "utf8")) as {
   email: string;
