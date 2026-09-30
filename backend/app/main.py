@@ -10,6 +10,7 @@ from app.config import get_settings
 from app.routers import (
     body_entries,
     dashboard,
+    favourites,
     food_log,
     foods,
     goals,
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     app.include_router(foods.router)
     app.include_router(food_log.router)
     app.include_router(nutrition.router)
+    app.include_router(favourites.router)
 
     return app
 

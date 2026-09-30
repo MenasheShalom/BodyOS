@@ -223,3 +223,11 @@ class EstimateOut(BaseModel):
     weight_kg: float
     lean_mass_kg: float | None
     targets: MacroTargets
+
+
+class RecentFoodOut(BaseModel):
+    food: FoodOut
+    grams: float
+    serving_label: str | None
+    serving_count: float | None
+    last_eaten_at: datetime

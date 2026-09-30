@@ -7,7 +7,7 @@ from psycopg.types.json import Jsonb
 from app.auth import current_user_id
 from app.db import Conn, get_conn
 from app.food_sources import FoodSource, get_food_sources
-from app.nutrition_schemas import CustomFoodIn, FoodOut, FoodSearchOut, ImportIn
+from app.nutrition_schemas import CustomFoodIn, FoodOut, FoodSearchOut, ImportIn, RecentFoodOut
 from app.services.food_service import (
     FOOD_COLUMNS,
     SourcesUnavailable,
@@ -22,6 +22,7 @@ from app.services.food_service import (
 
 router = APIRouter(prefix="/foods", tags=["foods"])
 UNAVAILABLE = "Food database unavailable. Please try again."
+RECENT_LIMIT = 30
 
 
 @router.get("/search", response_model=FoodSearchOut)
@@ -82,6 +83,40 @@ def my_foods(
         (user_id,),
     ).fetchall()
     return [food_out(r, user_id) for r in rows]
+
+
+@router.get("/recent", response_model=list[RecentFoodOut])
+def recent_foods(
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+) -> list[RecentFoodOut]:
+    """Foods logged lately, newest first, with the amount used last time."""
+    cols = ", ".join(f"f.{c.strip()}" for c in FOOD_COLUMNS.split(","))
+    rows = conn.execute(
+        f"""
+        select * from (
+          select distinct on (l.food_id) {cols}, l.grams as log_grams,
+                 l.serving_label as log_serving_label, l.serving_count as log_serving_count,
+                 l.eaten_at as last_eaten_at
+          from food_log l join foods f on f.id = l.food_id
+          where l.user_id = %s and not f.archived
+          order by l.food_id, l.eaten_at desc
+        ) recent
+        order by last_eaten_at desc
+        limit %s
+        """,
+        (user_id, RECENT_LIMIT),
+    ).fetchall()
+    return [
+        RecentFoodOut(
+            food=food_out(r, user_id),
+            grams=r["log_grams"],
+            serving_label=r["log_serving_label"],
+            serving_count=r["log_serving_count"],
+            last_eaten_at=r["last_eaten_at"],
+        )
+        for r in rows
+    ]
 
 
 @router.get("/{food_id}", response_model=FoodOut)
