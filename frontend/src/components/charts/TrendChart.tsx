@@ -2,6 +2,7 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Scatter,
@@ -9,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { BMI_ZONES, bmiBands, bmiBoundariesAround } from "../../lib/bmi";
 import { type ChartRow, mergeSeries, yDomain } from "../../lib/chart";
 import { formatDay, formatValue } from "../../lib/format";
 import type { Series } from "../../lib/types";
@@ -58,6 +60,11 @@ function Legend({ series, color, goal }: { series: Series; color: string; goal: 
 
 function Panel({ rows, series, rawKey, trendKey, color, goalValue, compact }: PanelProps) {
   const values = [...series.points, ...series.trend].map((p) => p.value);
+  // BMI gets its WHO zones as shaded bands, with the nearest boundaries kept in view.
+  const boundaries = series.metric === "bmi" ? bmiBoundariesAround(values) : [];
+  const domain = yDomain([...values, ...boundaries], goalValue);
+  const bands = series.metric === "bmi" ? bmiBands(domain) : [];
+  const visibleBoundaries = boundaries.filter((y) => y > domain[0] && y < domain[1]);
   return (
     <figure>
       <Legend series={series} color={color} goal={goalValue != null} />
@@ -74,7 +81,9 @@ function Panel({ rows, series, rawKey, trendKey, color, goalValue, compact }: Pa
               tickLine={false}
             />
             <YAxis
-              domain={yDomain(values, goalValue)}
+              domain={domain}
+              // For BMI, label the axis at the zone boundaries so they can be read off.
+              ticks={visibleBoundaries.length > 0 ? visibleBoundaries : undefined}
               allowDecimals
               stroke="var(--color-muted)"
               fontSize={12}
@@ -96,6 +105,29 @@ function Panel({ rows, series, rawKey, trendKey, color, goalValue, compact }: Pa
                 String(name).startsWith("trend") ? "Trend" : "Reading",
               ]}
             />
+            {bands.map((b) => {
+              const shade = BMI_ZONES.findIndex((z) => z.label === b.label) % 2 === 0;
+              return (
+                <ReferenceArea
+                  key={b.label}
+                  y1={b.y1}
+                  y2={b.y2}
+                  fill="var(--color-muted)"
+                  fillOpacity={shade ? 0.1 : 0.03}
+                  stroke="none"
+                  ifOverflow="hidden"
+                  label={{
+                    value: b.label,
+                    position: "insideTopRight",
+                    fill: "var(--color-muted)",
+                    fontSize: 11,
+                  }}
+                />
+              );
+            })}
+            {visibleBoundaries.map((y) => (
+                <ReferenceLine key={y} y={y} stroke="var(--color-muted)" strokeOpacity={0.5} />
+              ))}
             <Scatter
               dataKey={rawKey}
               fill={color}
