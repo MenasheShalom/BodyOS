@@ -8,9 +8,11 @@ type Props = {
   entries: FoodLogEntry[];
   onAdd: () => void;
   onOpen: (entry: FoodLogEntry) => void;
+  onCopy?: () => void;
+  onSave?: () => void;
 };
 
-export function MealSection({ label, entries, onAdd, onOpen }: Props) {
+export function MealSection({ label, entries, onAdd, onOpen, onCopy, onSave }: Props) {
   const kcal = entries.reduce((sum, e) => sum + (e.nutrients.energy_kcal ?? 0), 0);
   return (
     <section aria-label={label} className="rounded-2xl bg-surface">
@@ -43,14 +45,36 @@ export function MealSection({ label, entries, onAdd, onOpen }: Props) {
           ))}
         </ul>
       )}
-      <button
-        type="button"
-        onClick={onAdd}
-        aria-label={`Add to ${label}`}
-        className="flex w-full items-center gap-1.5 px-4 pb-3 pt-1 text-sm text-accent"
-      >
-        <Plus size={16} /> Add
-      </button>
+      <div className="flex items-center gap-4 px-4 pb-3 pt-1 text-sm">
+        <button
+          type="button"
+          onClick={onAdd}
+          aria-label={`Add to ${label}`}
+          className="flex items-center gap-1.5 text-accent"
+        >
+          <Plus size={16} /> Add
+        </button>
+        {onCopy && (
+          <button
+            type="button"
+            onClick={onCopy}
+            aria-label={`Copy into ${label}`}
+            className="text-muted"
+          >
+            Copy from…
+          </button>
+        )}
+        {onSave && entries.length > 0 && (
+          <button
+            type="button"
+            onClick={onSave}
+            aria-label={`Save ${label} as a meal`}
+            className="text-muted"
+          >
+            Save as meal
+          </button>
+        )}
+      </div>
     </section>
   );
 }

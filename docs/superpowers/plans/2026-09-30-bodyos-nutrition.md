@@ -93,7 +93,7 @@ frontend/src/
   forms/CustomFoodForm.tsx  forms/TargetsForm.tsx
   pages/Food.tsx  pages/MyFoods.tsx  pages/NutritionSetup.tsx  pages/Targets.tsx  pages/More.tsx (+ links)
   pages/Home.tsx (+ Photos shortcut)
-frontend/e2e/nutrition.spec.ts
+frontend/e2e/nutrition-1-core.spec.ts
 render.yaml  README.md                        + env vars
 ```
 
@@ -960,7 +960,7 @@ Override `get_food_sources` with fakes in a fixture `sources`.
 ### Task 14: End-to-end, config and docs
 
 **Files:**
-- Create: `frontend/e2e/nutrition.spec.ts`
+- Create: `frontend/e2e/nutrition-1-core.spec.ts`
 - Modify: `.github/workflows/ci.yml` (e2e: `FOOD_SOURCES=fake`), `render.yaml` (`USDA_API_KEY` sync: false, `OFF_USER_AGENT`, `FOOD_SOURCES=live`), `README.md` (env vars, USDA key signup, OFF attribution note)
 
 **Flows:**
@@ -985,19 +985,126 @@ Deviations from the steps above, made while building Phase 1:
 - **Custom food edits use `PUT /foods/{id}`** (full replacement), not PATCH. The form always sends every field.
 - **Services:** `app/services/food_log_service.py` holds the day view and `target_on()`, which Phase 3's check-in and dashboard reuse.
 - **Food editor routes:** `/nutrition/foods/new` (optionally prefilled from a database food via router state) and `/nutrition/foods/:id`.
-- **E2E ordering:** the e2e spec relies on running after `flows.spec.ts` (same user, already onboarded, with a weigh-in).
+- **E2E ordering:** the e2e spec relies on running after `flows.spec.ts` (files run in name order; same user, already onboarded, with a weigh-in).
 
-## Phase 2 — Speed (outline, expand before starting)
+## Phase 2 — Speed
 
-| # | Task | Key points |
-|---|---|---|
-| 15 | Migration `…_nutrition_speed.sql` | `food_favourites`, `recipes`, `recipe_items`, `saved_meals`, `saved_meal_items`, and the FK `foods.recipe_id → recipes`. RLS own-rows. A `foods_recipe_has_recipe_id` check. |
-| 16 | Favourites + recent API | `PUT/DELETE /favourites/{food_id}` (the food must be visible). `GET /foods/recent`: distinct food_id by last `eaten_at`, limit 30, with the last `grams/serving_label/serving_count`, excluding archived. |
-| 17 | Copy API | `POST /food-log/copy {from_day, to_day, meal?, to_meal?}`. Copies the snapshots verbatim, with `eaten_at` moved to the same local time on `to_day`. Tests: tz, whole day vs one meal, isolation. |
-| 18 | Recipes API | CRUD, recompute the backing `foods` row on save (spec §6.5, cooked weight, `incomplete_nutrients`), depth ≤ 2 and no cycles (422), and ingredient visibility checks. |
-| 19 | Saved meals API | CRUD and `POST /saved-meals/{id}/log {day, meal}`: one log row per item with a shared `meal_ref`, and `DELETE /food-log/meal-ref/{ref}` as undo. |
-| 20 | Barcode scanner (frontend) | `BarcodeScanner` component: `BarcodeDetector` if `ean_13`/`ean_8`/`upc_a`/`upc_e` are supported, otherwise a lazy-loaded `zxing-wasm`. Manual entry is always visible. Camera-denied → manual. Found → FoodDetail. 404 → "Create it?" with the barcode prefilled. 503 → Retry. Test the fallback selection and the manual path. The camera itself is not covered by e2e. |
-| 21 | Speed UI | AddFood gains the Recent and Favourites sections (the default view before typing), a favourite star in FoodDetail, the MealSection "Copy from…" (yesterday default, date picker) and "Save as meal", the day menu's "Copy whole day", a recipe builder page, and a saved meals list. E2E: copy yesterday's breakfast, build a recipe and log one serving, scan via manual barcode entry. |
+Goal (spec §1 success criteria): re-logging a recent or favourite food takes under 10 s, a barcode lookup under 20 s, and copying yesterday's breakfast is one action.
+
+### Decisions made while expanding Phase 2
+
+- **No nested recipes in v1.** A recipe's ingredients may be foods of any source except `recipe` (422 "Recipes can't contain other recipes yet"). This removes cycle checks and stale parent recipes. It is revisited if it proves limiting. *(Deviation from spec §4.4 "depth 2".)*
+- **Saved meals can hold quick adds.** A `saved_meal_items` row either has a `food_id` (nutrients recomputed from the food when logged, like any log) or a `nutrients` snapshot (a quick add). "Save as meal" from a day's meal therefore keeps everything that was logged.
+- **Foods referenced anywhere are archived, not deleted.** Deleting a custom food archives it if `food_log`, `recipe_items` or `saved_meal_items` references it. The item FKs are `on delete restrict`, so a hard delete can never break a recipe or saved meal.
+- **Copying keeps snapshots.** Copied entries keep their nutrient snapshots and local time of day. On the target day, an entry whose copied time would be in the future is moved to now. Every copy shares a new `meal_ref`.
+- **Recent** = distinct foods by last `eaten_at` (limit 30, archived excluded), with the last amount used. The add sheet shows Recent and Favourites before anything is typed, and a **＋** on a recent row re-logs the last amount in one tap.
+- **Barcode scanner:**
+  - Native `BarcodeDetector` when it supports EAN/UPC formats.
+  - Otherwise `zxing-wasm/reader`, lazy-loaded, with its `.wasm` bundled by Vite (served from our own origin, not a CDN).
+  - A manual digits field is always shown.
+  - Lookup 404 → "Not found. Create it?" (custom food form prefilled with the barcode). 503 → Retry.
+- **Undo for a logged saved meal** is deferred: the entries can be deleted one by one. `meal_ref` is stored now so undo can be added later without a migration.
+
+### Task 15: Migration `20261001000001_nutrition_speed.sql`
+
+Tables:
+- `food_favourites` (PK `(user_id, food_id)`)
+- `recipes` (`name`, `servings` 0.25–100, `cooked_weight_g` 1–20000 null, `note` ≤ 500, `archived`)
+- `recipe_items` (`recipe_id` cascade, `user_id`, `food_id` restrict, `grams` 0.1–5000, `position`)
+- `saved_meals` (`name`)
+- `saved_meal_items` (`saved_meal_id` cascade, `user_id`, `food_id` restrict null, `name`, `grams`, `serving_label`, `serving_count`, `nutrients` jsonb null, `position`, check `(food_id is null) = (nutrients is not null)`)
+
+Constraints:
+- `foods.recipe_id` gets an FK to `recipes` (`on delete cascade`).
+- Check `(source = 'recipe') = (recipe_id is not null)`.
+
+RLS own-rows and `updated_at` triggers on every new table.
+
+Tests (`test_migrations_nutrition.py`):
+- A favourite is hidden from other users.
+- A saved meal item needs exactly one of food/nutrients.
+- A recipe food needs `recipe_id`.
+- A restricted FK blocks a hard delete of a referenced food.
+
+### Task 16: Favourites and recent
+
+- `PUT /favourites/{food_id}` (the food must be visible, else 404; idempotent, 204).
+- `DELETE /favourites/{food_id}` (204).
+- `GET /favourites` → `FoodOut[]` ordered by name, archived excluded.
+- `GET /foods/recent` → `[{food: FoodOut, grams, serving_label, serving_count, last_eaten_at}]` via `distinct on (food_id) … order by food_id, eaten_at desc`, then sorted by `last_eaten_at desc`, limit 30.
+
+Tests:
+- Isolation.
+- Other users' custom foods can't be favourited.
+- Recent is ordered and deduplicated, carries the last serving, and excludes archived foods and quick adds.
+
+### Task 17: Copy
+
+`POST /food-log/copy {from_day, to_day, meal?, to_meal?}` → `FoodLogOut[]` (201).
+- Entries from `from_day` (optionally only `meal`) are copied to `to_day` (as `to_meal` or the same meal).
+- Snapshot and amount are verbatim.
+- `eaten_at` = same local time on `to_day` in the profile timezone, clamped to now.
+- Copying an empty day/meal returns 201 `[]`.
+- `to_day` must not be in the future (422).
+
+Tests:
+- A whole day.
+- One meal into another meal.
+- Timezone correctness across a DST day.
+- The future clamp.
+- Isolation (only my entries are copied).
+
+### Task 18: Recipes
+
+`GET/POST /recipes`, `GET/PUT/DELETE /recipes/{id}`.
+- **Request:** `{name, servings, cooked_weight_g?, note?, items: [{food_id, grams}]}` (1–50 items).
+- **Ingredients:** each must be visible and not a recipe.
+- **Save:** computes `nutrients_per_100g` = Σ scaled ingredient nutrients ÷ (cooked weight or Σ grams) × 100, keeping only nutrients every ingredient reports. It then upserts the backing `foods` row (`source='recipe'`, one serving = total weight ÷ servings).
+- **Response `RecipeOut`:** the recipe fields, `food_id`, `items` (with name and scaled nutrients), `total_grams`, `per_serving`, `incomplete_nutrients`.
+- **Delete:** archives the recipe and its food when either is referenced (log, other items), and hard-deletes otherwise.
+
+Tests:
+- The maths (with and without cooked weight).
+- Incomplete nutrients.
+- A nested recipe → 422.
+- Another user's food → 404.
+- Update recomputes.
+- The recipe appears in search and logs like a food.
+- Delete archive vs hard delete.
+- Isolation.
+
+### Task 19: Saved meals
+
+`GET/POST /saved-meals`, `PUT/DELETE /saved-meals/{id}`.
+- **Items:** `{food_id, grams, serving_label?, serving_count?}` or `{name, nutrients}` (quick). 1–30 items.
+- **`POST /saved-meals/from-log {name, day, meal}`:** builds a saved meal from that meal's entries (food entries by reference, quick adds by snapshot). 422 if the meal is empty.
+- **`POST /saved-meals/{id}/log {meal, eaten_at}`:** one log row per item, sharing a new `meal_ref`. Food items are scaled from the food's current nutrients.
+
+Tests:
+- Round trip.
+- `from-log` keeps quick adds.
+- Logging creates N entries with one `meal_ref`.
+- Another user's meal → 404.
+- A deleted (archived) food still logs from its row.
+
+### Task 20: Barcode scanner (frontend)
+
+`components/nutrition/BarcodeScanner.tsx` + `lib/barcode.ts`:
+- `pickDetector()`: native if `BarcodeDetector.getSupportedFormats()` includes `ean_13`, else zxing. Lazy `import("zxing-wasm/reader")` with `prepareZXingModule` + a Vite `?url` wasm import.
+- A camera loop (`getUserMedia({video: {facingMode: "environment"}})`, detect about every 200 ms, stop tracks on unmount).
+- A manual digits field with a Look up button.
+- Camera errors fall back to manual entry with a message.
+
+`AddFood` gains a **Scan** button. Tests: detector selection, the manual path, and not-found → create-with-barcode.
+
+### Task 21: Speed UI
+
+- **AddFood default view** (empty query): Recent (with one-tap ＋), Favourites and Saved meals sections.
+- **FoodDetail:** a favourite star and the initial serving taken from the recent entry.
+- **MealSection:** "Copy from…" (a modal with day, default yesterday, and source meal, default this meal) and "Save as meal" (name prompt).
+- **Food page:** a "Copy another day…" link under the meals.
+- **Pages:** `/nutrition/recipes`, `/nutrition/recipes/new`, `/nutrition/recipes/:id` (builder with ingredient picker, grams, live per-serving totals and incomplete markers) and `/nutrition/meals` (list, view, delete). The Nutrition hub links to both.
+- **E2E (`nutrition-2-speed.spec.ts`):** log to yesterday then copy yesterday's breakfast to today, build a recipe and log one serving, manual barcode entry of the demo hummus.
 
 ## Phase 3 — Insight (outline, expand before starting)
 

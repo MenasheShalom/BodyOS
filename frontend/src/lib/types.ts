@@ -218,3 +218,40 @@ export type Estimate = {
   lean_mass_kg: number | null;
   targets: MacroTargets;
 };
+
+export type RecentFood = {
+  food: Food;
+  grams: number;
+  serving_label: string | null;
+  serving_count: number | null;
+  last_eaten_at: string;
+};
+export type CopyInput = { from_day: string; to_day: string; meal?: Meal; to_meal?: Meal };
+
+export type RecipeItemInput = { food_id: string; grams: number };
+export type RecipeInput = {
+  name: string;
+  servings: number;
+  cooked_weight_g: number | null;
+  note: string | null;
+  items: RecipeItemInput[];
+};
+export type Recipe = Omit<RecipeInput, "items"> & {
+  id: string;
+  food_id: string;
+  items: (RecipeItemInput & { name: string; brand: string | null; nutrients: Nutrients })[];
+  total_grams: number;
+  serving_grams: number;
+  per_serving: Nutrients;
+  incomplete_nutrients: NutrientKey[];
+};
+
+export type SavedMealItem = {
+  food_id: string | null;
+  name: string;
+  grams: number | null;
+  serving_label: string | null;
+  serving_count: number | null;
+  nutrients: Nutrients;
+};
+export type SavedMeal = { id: string; name: string; items: SavedMealItem[]; totals: Nutrients };

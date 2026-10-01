@@ -223,3 +223,115 @@ class EstimateOut(BaseModel):
     weight_kg: float
     lean_mass_kg: float | None
     targets: MacroTargets
+
+
+class RecentFoodOut(BaseModel):
+    food: FoodOut
+    grams: float
+    serving_label: str | None
+    serving_count: float | None
+    last_eaten_at: datetime
+
+
+class CopyIn(BaseModel):
+    from_day: date
+    to_day: date
+    meal: Meal | None = None  # None copies the whole day
+    to_meal: Meal | None = None  # defaults to the same meal
+
+    @model_validator(mode="after")
+    def _to_meal_needs_meal(self) -> Self:
+        if self.to_meal is not None and self.meal is None:
+            raise ValueError("Choose which meal to copy")
+        return self
+
+
+class RecipeItemIn(BaseModel):
+    food_id: UUID
+    grams: float = Field(ge=0.1, le=5000)
+
+
+class RecipeIn(BaseModel):
+    name: Name
+    servings: float = Field(ge=0.25, le=100)
+    cooked_weight_g: float | None = Field(default=None, ge=1, le=20000)
+    note: Annotated[str, StringConstraints(max_length=500)] | None = None
+    items: list[RecipeItemIn] = Field(min_length=1, max_length=50)
+
+
+class RecipeItemOut(BaseModel):
+    food_id: UUID
+    name: str
+    brand: str | None
+    grams: float
+    nutrients: dict[str, float]
+
+
+class RecipeOut(BaseModel):
+    id: UUID
+    name: str
+    servings: float
+    cooked_weight_g: float | None
+    note: str | None
+    food_id: UUID
+    items: list[RecipeItemOut]
+    total_grams: float
+    serving_grams: float
+    per_serving: dict[str, float]
+    incomplete_nutrients: list[str]
+
+
+class SavedMealItemIn(BaseModel):
+    """A food (by id and amount) or a quick add (name and numbers)."""
+
+    food_id: UUID | None = None
+    grams: float | None = Field(default=None, ge=0.1, le=5000)
+    serving_label: Annotated[str, StringConstraints(max_length=100)] | None = None
+    serving_count: float | None = Field(default=None, gt=0, le=100)
+    name: Name | None = None
+    nutrients: dict[str, float] | None = None
+
+    @model_validator(mode="after")
+    def _one_kind(self) -> Self:
+        if self.food_id is not None:
+            if self.grams is None:
+                raise ValueError("Enter an amount")
+            if self.nutrients is not None:
+                raise ValueError("A food item takes an amount, not nutrients")
+        else:
+            if self.nutrients is None:
+                raise ValueError("Choose a food or enter calories")
+            self.nutrients = validate_quick_nutrients(self.nutrients)
+        return self
+
+
+class SavedMealIn(BaseModel):
+    name: Name
+    items: list[SavedMealItemIn] = Field(min_length=1, max_length=30)
+
+
+class SavedMealFromLogIn(BaseModel):
+    name: Name
+    day: date
+    meal: Meal
+
+
+class SavedMealLogIn(BaseModel):
+    meal: Meal
+    eaten_at: AwareDatetime
+
+
+class SavedMealItemOut(BaseModel):
+    food_id: UUID | None
+    name: str
+    grams: float | None
+    serving_label: str | None
+    serving_count: float | None
+    nutrients: dict[str, float]
+
+
+class SavedMealOut(BaseModel):
+    id: UUID
+    name: str
+    items: list[SavedMealItemOut]
+    totals: dict[str, float]

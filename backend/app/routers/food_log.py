@@ -1,3 +1,4 @@
+import uuid
 from datetime import date, datetime
 from typing import Any
 from uuid import UUID
@@ -10,10 +11,17 @@ from app.calculations.nutrition import scale, scale_snapshot
 from app.clock import get_now
 from app.crud import delete_row, get_row, require
 from app.db import Conn, get_conn
-from app.nutrition_schemas import FoodDayOut, FoodLogIn, FoodLogOut, FoodLogPatch, QuickAddIn
+from app.nutrition_schemas import (
+    CopyIn,
+    FoodDayOut,
+    FoodLogIn,
+    FoodLogOut,
+    FoodLogPatch,
+    QuickAddIn,
+)
 from app.profiles import load_profile
 from app.routers.body_entries import check_not_future
-from app.services.food_log_service import LOG_COLUMNS, food_day
+from app.services.food_log_service import LOG_COLUMNS, entries_between, food_day
 from app.services.food_service import visible_food
 from app.services.series_service import UTC_ZONE, local_today
 
@@ -88,6 +96,48 @@ def quick_add(
             "nutrients": Jsonb(body.nutrients),
         },
     )
+
+
+@router.post("/copy", response_model=list[FoodLogOut], status_code=201)
+def copy_entries(
+    body: CopyIn,
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+    now: datetime = Depends(get_now),
+) -> list[dict[str, Any]]:
+    """Copy a day's entries (or one meal's) to another day at the same local times."""
+    profile = load_profile(conn, user_id)
+    tz = profile.tz if profile else UTC_ZONE
+    if body.to_day > local_today(now, profile):
+        raise HTTPException(status_code=422, detail="Can't copy into a future day")
+    rows = [
+        r
+        for r in entries_between(conn, user_id, body.from_day, tz)
+        if body.meal is None or r["meal"] == body.meal
+    ]
+    meal_ref = uuid.uuid4()  # groups the copies so they can be undone together later
+    copies = []
+    for r in rows:
+        local_time = r["eaten_at"].astimezone(tz).time()
+        eaten_at = datetime.combine(body.to_day, local_time, tzinfo=tz)
+        copies.append(
+            _insert(
+                conn,
+                user_id,
+                {
+                    "eaten_at": min(eaten_at, now),
+                    "meal": body.to_meal or r["meal"],
+                    "food_id": r["food_id"],
+                    "name": r["name"],
+                    "grams": r["grams"],
+                    "serving_label": r["serving_label"],
+                    "serving_count": r["serving_count"],
+                    "nutrients": Jsonb(r["nutrients"]),
+                    "meal_ref": meal_ref,
+                },
+            )
+        )
+    return copies
 
 
 @router.patch("/{entry_id}", response_model=FoodLogOut)

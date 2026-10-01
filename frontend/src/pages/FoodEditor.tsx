@@ -11,7 +11,7 @@ export function FoodEditor() {
   const navigate = useNavigate();
   const save = useSaveCustomFood();
   const foods = useMyFoods();
-  const prefill = (location.state as { prefill?: Food } | null)?.prefill;
+  const prefill = (location.state as { prefill?: Partial<Food> } | null)?.prefill;
 
   const done = () => void navigate("/nutrition/foods");
 
@@ -37,7 +37,7 @@ export function FoodEditor() {
 
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">{prefill ? "Copy to my foods" : "New food"}</h1>
+      <h1 className="text-2xl font-semibold">{prefill?.name ? "Copy to my foods" : "New food"}</h1>
       <CustomFoodForm
         initial={prefill}
         onSubmit={async (body) => {

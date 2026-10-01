@@ -70,6 +70,17 @@ def own_custom_food(conn: Conn, user_id: UUID, food_id: UUID) -> dict[str, Any] 
     ).fetchone()
 
 
+def food_in_use(conn: Conn, food_id: UUID) -> bool:
+    """Whether a log entry, recipe or saved meal refers to the food."""
+    row = conn.execute(
+        "select exists (select 1 from food_log where food_id = %(id)s)"
+        " or exists (select 1 from recipe_items where food_id = %(id)s)"
+        " or exists (select 1 from saved_meal_items where food_id = %(id)s) as used",
+        {"id": food_id},
+    ).fetchone()
+    return bool(row and row["used"])
+
+
 def food_country(conn: Conn, user_id: UUID) -> str:
     row = conn.execute(
         "select food_country from nutrition_settings where user_id = %s", (user_id,)

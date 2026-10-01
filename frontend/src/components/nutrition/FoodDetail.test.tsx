@@ -4,7 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 import type { Food } from "../../lib/types";
 
 const logFood = vi.fn().mockResolvedValue({});
-vi.mock("../../lib/queries", () => ({ useLogFood: () => ({ mutateAsync: logFood }) }));
+const setFavourite = vi.fn();
+const favourites = vi.fn().mockReturnValue({ data: [] });
+vi.mock("../../lib/queries", () => ({
+  useLogFood: () => ({ mutateAsync: logFood }),
+  useFavourites: () => favourites(),
+  useSetFavourite: () => ({ mutate: setFavourite }),
+}));
 
 import { FoodDetail } from "./FoodDetail";
 
@@ -96,5 +102,52 @@ describe("FoodDetail", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: /Copy to my foods/ }));
     expect(onCopy).toHaveBeenCalledWith(hummus);
+  });
+
+  it("starts from the amount logged last time", () => {
+    render(
+      <FoodDetail
+        food={hummus}
+        day="2026-01-15"
+        meal="lunch"
+        initial={{ grams: 90, serving_label: "2 tbsp", serving_count: 3 }}
+        onBack={vi.fn()}
+        onLogged={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("Amount")).toHaveValue("3");
+    expect(screen.getByText("90 g")).toBeInTheDocument();
+  });
+
+  it("falls back to grams when last time's serving is gone", () => {
+    render(
+      <FoodDetail
+        food={hummus}
+        day="2026-01-15"
+        meal="lunch"
+        initial={{ grams: 150, serving_label: "1 bowl", serving_count: 1 }}
+        onBack={vi.fn()}
+        onLogged={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("Serving")).toHaveDisplayValue("100 g");
+    expect(screen.getByLabelText("Amount")).toHaveValue("1.5");
+  });
+
+  it("toggles the favourite star", async () => {
+    favourites.mockReturnValue({ data: [hummus] });
+    render(
+      <FoodDetail
+        food={hummus}
+        day="2026-01-15"
+        meal="lunch"
+        onBack={vi.fn()}
+        onLogged={vi.fn()}
+      />,
+    );
+    const star = screen.getByRole("button", { name: "Remove from favourites" });
+    expect(star).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(star);
+    expect(setFavourite).toHaveBeenCalledWith({ foodId: "f1", favourite: false });
   });
 });

@@ -4,11 +4,12 @@ import { useLogSheet } from "../components/AppLayout";
 import { ErrorState, Spinner } from "../components/EmptyState";
 import { DateStrip } from "../components/nutrition/DateStrip";
 import { EntrySheet } from "../components/nutrition/EntrySheet";
+import { CopyDialog, SaveMealDialog } from "../components/nutrition/MealDialogs";
 import { MealSection } from "../components/nutrition/MealSection";
 import { NutritionSummary } from "../components/nutrition/NutritionSummary";
 import { isoDay, MEALS } from "../lib/meals";
 import { useFoodDay, useNutritionSettings } from "../lib/queries";
-import type { FoodLogEntry } from "../lib/types";
+import type { FoodLogEntry, Meal } from "../lib/types";
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -21,6 +22,9 @@ export function Food() {
   const settings = useNutritionSettings();
   const logSheet = useLogSheet();
   const [editing, setEditing] = useState<FoodLogEntry | null>(null);
+  const [dialog, setDialog] = useState<
+    { kind: "copy"; meal?: Meal } | { kind: "save"; meal: Meal } | null
+  >(null);
 
   const setDay = (d: string) => setParams(d === today ? {} : { day: d });
 
@@ -55,11 +59,26 @@ export function Food() {
               entries={foodDay.data.entries.filter((e) => e.meal === m.key)}
               onAdd={() => logSheet.open("food", { day, meal: m.key })}
               onOpen={setEditing}
+              onCopy={() => setDialog({ kind: "copy", meal: m.key })}
+              onSave={() => setDialog({ kind: "save", meal: m.key })}
             />
           ))}
+          <button
+            type="button"
+            onClick={() => setDialog({ kind: "copy" })}
+            className="w-full py-2 text-sm text-muted"
+          >
+            Copy a whole day into this one…
+          </button>
         </>
       )}
       {editing && <EntrySheet entry={editing} onClose={() => setEditing(null)} />}
+      {dialog?.kind === "copy" && (
+        <CopyDialog day={day} meal={dialog.meal} onClose={() => setDialog(null)} />
+      )}
+      {dialog?.kind === "save" && (
+        <SaveMealDialog day={day} meal={dialog.meal} onClose={() => setDialog(null)} />
+      )}
     </div>
   );
 }

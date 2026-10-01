@@ -4,6 +4,8 @@ import { Link } from "react-router";
 const LINKS = [
   { to: "/nutrition/targets", label: "Targets", body: "Calories, macros and how they're set" },
   { to: "/nutrition/foods", label: "My foods", body: "Foods you created, edit or delete" },
+  { to: "/nutrition/recipes", label: "Recipes", body: "Home cooking, logged by the serving" },
+  { to: "/nutrition/meals", label: "Saved meals", body: "Meals you log often, in one go" },
 ];
 
 export function Nutrition() {
