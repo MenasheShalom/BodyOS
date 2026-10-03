@@ -8,7 +8,7 @@ import { goals, useProfile, useSeries } from "../lib/queries";
 import type { RangeKey } from "../lib/types";
 
 const RANGES: RangeKey[] = ["1M", "3M", "6M", "1Y", "ALL"];
-const GROUPS = ["Composition", "Scale", "Tape"] as const;
+const GROUPS = ["Composition", "Scale", "Tape", "Nutrition"] as const;
 
 function MetricSelect({
   label,

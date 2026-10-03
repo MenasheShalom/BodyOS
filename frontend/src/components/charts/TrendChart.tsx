@@ -13,6 +13,7 @@ import {
 import { BMI_ZONES, bmiBands, bmiBoundariesAround } from "../../lib/bmi";
 import { type ChartRow, mergeSeries, yDomain } from "../../lib/chart";
 import { formatDay, formatValue } from "../../lib/format";
+import { TREND_LABEL, trendKind } from "../../lib/metrics";
 import type { Series } from "../../lib/types";
 
 const C1 = "var(--color-series-1)";
@@ -31,25 +32,36 @@ type PanelProps = {
 };
 
 function Legend({ series, color, goal }: { series: Series; color: string; goal: boolean }) {
+  const kind = trendKind(series.metric);
   return (
     <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
       <span className="font-medium text-text">{series.label}</span>
-      <span className="flex items-center gap-1.5">
-        <svg width="10" height="10" aria-hidden="true">
-          <circle cx="5" cy="5" r="4" fill={color} fillOpacity={0.35} />
-        </svg>
-        Readings
-      </span>
+      {kind !== "step" && (
+        <span className="flex items-center gap-1.5">
+          <svg width="10" height="10" aria-hidden="true">
+            <circle cx="5" cy="5" r="4" fill={color} fillOpacity={0.35} />
+          </svg>
+          {kind === "rolling7" ? "Days" : "Readings"}
+        </span>
+      )}
       <span className="flex items-center gap-1.5">
         <svg width="16" height="10" aria-hidden="true">
           <line x1="0" y1="5" x2="16" y2="5" stroke={color} strokeWidth={2} />
         </svg>
-        Trend
+        {TREND_LABEL[kind]}
       </span>
       {goal && (
         <span className="flex items-center gap-1.5">
           <svg width="16" height="10" aria-hidden="true">
-            <line x1="0" y1="5" x2="16" y2="5" stroke={color} strokeWidth={1.5} strokeDasharray="4 3" />
+            <line
+              x1="0"
+              y1="5"
+              x2="16"
+              y2="5"
+              stroke={color}
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+            />
           </svg>
           Goal
         </span>
@@ -59,6 +71,7 @@ function Legend({ series, color, goal }: { series: Series; color: string; goal: 
 }
 
 function Panel({ rows, series, rawKey, trendKey, color, goalValue, compact }: PanelProps) {
+  const kind = trendKind(series.metric);
   const values = [...series.points, ...series.trend].map((p) => p.value);
   // BMI gets its WHO zones as shaded bands, with the nearest boundaries kept in view.
   const boundaries = series.metric === "bmi" ? bmiBoundariesAround(values) : [];
@@ -102,7 +115,11 @@ function Panel({ rows, series, rawKey, trendKey, color, goalValue, compact }: Pa
               labelFormatter={(d) => formatDay(String(d))}
               formatter={(value, name) => [
                 formatValue(Number(value), series.unit, 2),
-                String(name).startsWith("trend") ? "Trend" : "Reading",
+                String(name).startsWith("trend")
+                  ? TREND_LABEL[kind]
+                  : kind === "rolling7"
+                    ? "Day"
+                    : "Reading",
               ]}
             />
             {bands.map((b) => {
@@ -126,15 +143,13 @@ function Panel({ rows, series, rawKey, trendKey, color, goalValue, compact }: Pa
               );
             })}
             {visibleBoundaries.map((y) => (
-                <ReferenceLine key={y} y={y} stroke="var(--color-muted)" strokeOpacity={0.5} />
-              ))}
-            <Scatter
-              dataKey={rawKey}
-              fill={color}
-              fillOpacity={0.35}
-              isAnimationActive={false}
-            />
+              <ReferenceLine key={y} y={y} stroke="var(--color-muted)" strokeOpacity={0.5} />
+            ))}
+            {kind !== "step" && (
+              <Scatter dataKey={rawKey} fill={color} fillOpacity={0.35} isAnimationActive={false} />
+            )}
             <Line
+              type={kind === "step" ? "stepAfter" : "linear"}
               dataKey={trendKey}
               stroke={color}
               strokeWidth={2}
