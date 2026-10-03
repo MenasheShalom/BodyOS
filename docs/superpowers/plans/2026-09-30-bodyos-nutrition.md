@@ -1247,8 +1247,4 @@ Tests for every component: card actions, the coverage greying, flag toggles, Tre
 
 Also: the README gains a short section on how the TDEE works; the Phase 3 migration is applied to Supabase before merging (as with Phases 1 and 2); then the PR.
 
-### Task 29 (optional, needs approval): Israeli food database (Tzameret)
-
-Importing the Ministry of Health food composition database (צמרת, open data) as a fourth source (`source = 'moh'`, shared rows, Hebrew names) through a one-off import script, ranked after own foods in local search.
-- **Blocked on:** network access to the download host, and checking the licence on data.gov.il.
-- **Placement:** can run before or after Tasks 22–28 because it touches only the food sources; it is listed separately so it doesn't hold up Phase 3.
+*Importing the Israeli Ministry of Health food database (Tzameret) was considered and declined (2026-10-03).*
