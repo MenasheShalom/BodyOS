@@ -137,3 +137,62 @@ def test_recipe_totals_cooked_weight_and_incomplete() -> None:
     )
     assert t.per_100g == {"energy_kcal": 100}
     assert t.incomplete == ["vit_c_mg"]
+
+
+# --- Weekly suggestions (spec §6.4) --------------------------------------------------------
+
+SUGGEST = {
+    "mode": "recomp",
+    "deficit_pct": None,
+    "protein_g_per_kg": 2.0,
+    "weight_kg": 85,
+    "weekly_rate_kg": -0.3,
+    "bmr_kcal": 1800,
+    "sex": "male",
+}
+
+
+def test_suggestion_follows_tdee_without_current_targets() -> None:
+    from app.calculations.nutrition import suggest_targets
+
+    s = suggest_targets(None, 2600, **SUGGEST)
+    assert s.targets.energy_kcal == 2340 and not s.capped and s.warning is None
+
+
+def test_suggestion_capped_at_150_both_ways() -> None:
+    from app.calculations.nutrition import suggest_targets
+
+    current = Targets(energy_kcal=2000, protein_g=170, carbs_g=200, fat_g=60, fiber_g=30)
+    up = suggest_targets(current, 2800, **SUGGEST)  # would be 2,520
+    assert up.targets.energy_kcal == 2150 and up.capped
+    high = Targets(energy_kcal=2700, protein_g=170, carbs_g=300, fat_g=75, fiber_g=40)
+    down = suggest_targets(high, 2600, **SUGGEST)  # would be 2,340
+    assert down.targets.energy_kcal == 2550 and down.capped
+
+
+def test_suggestion_never_below_floor() -> None:
+    from app.calculations.nutrition import suggest_targets
+
+    current = Targets(energy_kcal=1900, protein_g=170, carbs_g=150, fat_g=55, fiber_g=25)
+    s = suggest_targets(current, 1700, **{**SUGGEST, "bmr_kcal": 1850, "mode": "cut"})
+    assert s.targets.energy_kcal == 1850  # BMR, not 1,750 (the 150 cap) or 1,360 (the deficit)
+
+
+def test_fast_loss_stops_further_cuts() -> None:
+    from app.calculations.nutrition import suggest_targets
+
+    current = Targets(energy_kcal=2300, protein_g=170, carbs_g=250, fat_g=65, fiber_g=30)
+    fast = {**SUGGEST, "weekly_rate_kg": -1.0}  # more than 1% of 85 kg a week
+    s = suggest_targets(current, 2400, **fast)  # would cut to 2,160
+    assert s.targets.energy_kcal == 2300 and s.warning is not None
+    up = suggest_targets(current, 2700, **fast)  # raising is still allowed
+    assert up.targets.energy_kcal == 2430 and up.warning is None
+
+
+def test_meaningfully_different() -> None:
+    from app.calculations.nutrition import meaningfully_different
+
+    base = Targets(energy_kcal=2300, protein_g=170, carbs_g=250, fat_g=65, fiber_g=30)
+    assert not meaningfully_different(base, Targets(2340, 170, 260, 65, 35))
+    assert meaningfully_different(base, Targets(2350, 170, 260, 65, 35))
+    assert meaningfully_different(base, Targets(2300, 175, 245, 65, 30))

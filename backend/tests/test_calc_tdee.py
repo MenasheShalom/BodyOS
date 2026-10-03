@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.calculations.series import Point, ewma_trend
+from app.calculations.series import Point
 from app.calculations.tdee import (
     adaptive_tdee,
     check_in_days,
@@ -34,7 +34,7 @@ def simulate(seed: int, weeks: int = 10, spike_day: int | None = None, weigh_eve
         if i % weigh_every == 0:
             readings.append(Point(day, weight + water))
     today = START + timedelta(days=weeks * 7 - 1)
-    return adaptive_tdee(intake, ewma_trend(readings, 0.1), SEED_GUESS, today, SUNDAY)
+    return adaptive_tdee(intake, readings, SEED_GUESS, today, SUNDAY)
 
 
 def test_recovers_a_known_tdee() -> None:
@@ -80,11 +80,11 @@ def test_observation_needs_enough_weigh_ins_over_two_weeks() -> None:
     end = START + timedelta(days=27)
     intake = {START + timedelta(days=i): 2200.0 for i in range(28)}
     few = [Point(START + timedelta(days=i), 85.0) for i in range(0, 28, 4)]  # 7 weigh-ins
-    assert observe(end, intake, few) is None
+    assert observe(end, intake, few, few) is None
     short = [Point(START + timedelta(days=i), 85.0) for i in range(18, 28)]  # 9 days apart
-    assert observe(end, intake, short) is None
+    assert observe(end, intake, short, short) is None
     steady = [Point(START + timedelta(days=i), 85.0) for i in range(28)]
-    obs = observe(end, intake, steady)
+    obs = observe(end, intake, steady, steady)
     assert obs is not None and obs.tdee == pytest.approx(2200)  # weight flat: burn = intake
 
 
@@ -92,7 +92,7 @@ def test_losing_weight_means_burning_more_than_eaten() -> None:
     end = START + timedelta(days=27)
     intake = {START + timedelta(days=i): 2000.0 for i in range(28)}
     trend = [Point(START + timedelta(days=i), 85 - i * 0.05) for i in range(28)]  # −0.35 kg/wk
-    obs = observe(end, intake, trend)
+    obs = observe(end, intake, trend, trend)
     assert obs is not None
     assert obs.tdee == pytest.approx(2000 + 0.05 * 7700)
     assert obs.weight_change_kg == pytest.approx(-1.4)
@@ -102,6 +102,16 @@ def test_eligible_days_skip_flagged_and_half_logged() -> None:
     d1, d2, d3 = START, START + timedelta(days=1), START + timedelta(days=2)
     days = eligible_days({d1: 2100, d2: 900, d3: 2300}, {d3}, lambda _: 2000)
     assert days == {d1: 2100}
+
+
+def test_first_weeks_use_daily_weights_not_the_lagging_trend() -> None:
+    """A steady 0.05 kg/day loss from the first weigh-in: the trend hasn't caught up yet, so the
+    reading must come from the weights themselves (burn = 2,000 + 0.05 × 7,700 = 2,385)."""
+    days = [START + timedelta(days=i) for i in range(28)]
+    intake = {d: 2000.0 for d in days}
+    weights = [Point(d, 85 - 0.05 * i) for i, d in enumerate(days)]
+    r = adaptive_tdee(intake, weights, 2385, days[-1], days[-1].weekday())
+    assert r.weekly[-1].observed == pytest.approx(2385)
 
 
 def test_check_in_days() -> None:

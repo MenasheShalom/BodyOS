@@ -71,18 +71,20 @@ def _round(value: float, step: int) -> int:
     return int(step * round(value / step))
 
 
-def targets_from_tdee(
-    tdee: float,
-    *,
-    mode: str,
-    deficit_pct: float | None,
-    protein_g_per_kg: float,
-    weight_kg: float,
-    bmr_kcal: float,
-    sex: Sex,
-) -> Targets:
+def kcal_target(
+    tdee: float, *, mode: str, deficit_pct: float | None, bmr_kcal: float, sex: Sex
+) -> float:
+    """Calories for the goal: TDEE less the deficit, never below BMR or the sex's floor."""
     deficit = MODE_DEFICIT[mode] if deficit_pct is None else deficit_pct
-    kcal = max(tdee * (1 - deficit / 100), bmr_kcal, KCAL_FLOOR[sex])
+    return max(tdee * (1 - deficit / 100), kcal_floor(bmr_kcal, sex))
+
+
+def kcal_floor(bmr_kcal: float, sex: Sex) -> float:
+    return max(bmr_kcal, KCAL_FLOOR[sex])
+
+
+def macros_for(kcal: float, *, protein_g_per_kg: float, weight_kg: float) -> Targets:
+    """Split calories into protein (per kg body weight), fat (≥ 25% kcal) and carbs."""
     protein = protein_g_per_kg * weight_kg
     fat = max(0.25 * kcal / 9, 0.6 * weight_kg)
     carbs = (kcal - 4 * protein - 9 * fat) / 4
@@ -97,6 +99,75 @@ def targets_from_tdee(
         _round(carbs, 5),
         _round(fat, 5),
         _round(14 * kcal / 1000, 5),
+    )
+
+
+def targets_from_tdee(
+    tdee: float,
+    *,
+    mode: str,
+    deficit_pct: float | None,
+    protein_g_per_kg: float,
+    weight_kg: float,
+    bmr_kcal: float,
+    sex: Sex,
+) -> Targets:
+    kcal = kcal_target(tdee, mode=mode, deficit_pct=deficit_pct, bmr_kcal=bmr_kcal, sex=sex)
+    return macros_for(kcal, protein_g_per_kg=protein_g_per_kg, weight_kg=weight_kg)
+
+
+MAX_KCAL_STEP = 150  # one check-in never moves calories further than this
+FAST_LOSS_PER_WEEK = 0.01  # losing more than 1% of body weight a week
+MEANINGFUL_KCAL = 50
+MEANINGFUL_PROTEIN_G = 5
+
+
+@dataclass(frozen=True)
+class Suggestion:
+    targets: Targets
+    capped: bool  # the ±150 kcal limit held the calories back this week
+    warning: str | None
+
+
+def suggest_targets(
+    current: Targets | None,
+    tdee: float,
+    *,
+    mode: str,
+    deficit_pct: float | None,
+    protein_g_per_kg: float,
+    weight_kg: float,
+    weekly_rate_kg: float | None,
+    bmr_kcal: float,
+    sex: Sex,
+) -> Suggestion:
+    """Weekly check-in targets from the adaptive TDEE, with the spec §6.4 safety rails."""
+    kcal = kcal_target(tdee, mode=mode, deficit_pct=deficit_pct, bmr_kcal=bmr_kcal, sex=sex)
+    capped = False
+    warning = None
+    if current is not None:
+        losing_fast = (
+            weekly_rate_kg is not None and weekly_rate_kg < -FAST_LOSS_PER_WEEK * weight_kg
+        )
+        if losing_fast and kcal < current.energy_kcal:
+            kcal = current.energy_kcal
+            warning = (
+                "You're losing more than 1% of your body weight a week, "
+                "so this won't lower your calories further."
+            )
+        low, high = current.energy_kcal - MAX_KCAL_STEP, current.energy_kcal + MAX_KCAL_STEP
+        if not low <= kcal <= high:
+            kcal = min(max(kcal, low), high)
+            capped = True
+    kcal = max(kcal, kcal_floor(bmr_kcal, sex))
+    targets = macros_for(kcal, protein_g_per_kg=protein_g_per_kg, weight_kg=weight_kg)
+    return Suggestion(targets, capped, warning)
+
+
+def meaningfully_different(a: Targets, b: Targets) -> bool:
+    return (
+        abs(a.energy_kcal - b.energy_kcal) >= MEANINGFUL_KCAL
+        or abs(a.protein_g - b.protein_g) >= MEANINGFUL_PROTEIN_G
     )
 
 

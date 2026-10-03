@@ -3,17 +3,19 @@ from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from psycopg.types.json import Jsonb
 
 from app.auth import current_user_id
-from app.calculations.nutrition import scale, scale_snapshot
+from app.calculations.nutrition import day_bounds, scale, scale_snapshot
 from app.clock import get_now
 from app.crud import delete_row, get_row, require
 from app.db import Conn, get_conn
 from app.nutrition_schemas import (
     CopyIn,
+    DayFlagIn,
     FoodDayOut,
+    FoodDaySummaryOut,
     FoodLogIn,
     FoodLogOut,
     FoodLogPatch,
@@ -96,6 +98,72 @@ def quick_add(
             "nutrients": Jsonb(body.nutrients),
         },
     )
+
+
+MAX_DAYS_LISTED = 92
+
+
+@router.get("/days", response_model=list[FoodDaySummaryOut])
+def list_days(
+    start: date = Query(alias="from"),
+    end: date = Query(alias="to"),
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+) -> list[FoodDaySummaryOut]:
+    """Per-day totals for days with entries, newest first (for History)."""
+    if end < start or (end - start).days > MAX_DAYS_LISTED:
+        raise HTTPException(status_code=422, detail=f"Choose up to {MAX_DAYS_LISTED} days")
+    profile = load_profile(conn, user_id)
+    tz = profile.tz if profile else UTC_ZONE
+    first, _ = day_bounds(start, tz)
+    _, last = day_bounds(end, tz)
+    rows = conn.execute(
+        "select eaten_at, nutrients from food_log"
+        " where user_id = %s and eaten_at >= %s and eaten_at < %s",
+        (user_id, first, last),
+    ).fetchall()
+    flags = {
+        r["day"]
+        for r in conn.execute(
+            "select day from nutrition_day_flags where user_id = %s and excluded"
+            " and day between %s and %s",
+            (user_id, start, end),
+        ).fetchall()
+    }
+    days: dict[date, list[dict[str, float]]] = {}
+    for r in rows:
+        days.setdefault(r["eaten_at"].astimezone(tz).date(), []).append(r["nutrients"])
+    return [
+        FoodDaySummaryOut(
+            day=d,
+            energy_kcal=round(sum(n.get("energy_kcal", 0.0) for n in items), 1),
+            protein_g=round(sum(n.get("protein_g", 0.0) for n in items), 1),
+            entries=len(items),
+            excluded=d in flags,
+        )
+        for d, items in sorted(days.items(), reverse=True)
+    ]
+
+
+@router.put("/days/{day}/flag", status_code=204)
+def flag_day(
+    day: date,
+    body: DayFlagIn,
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+) -> Response:
+    """Mark a day incomplete (left out of the TDEE and averages), or complete again."""
+    if body.excluded:
+        conn.execute(
+            "insert into nutrition_day_flags (user_id, day, excluded) values (%s, %s, true)"
+            " on conflict (user_id, day) do update set excluded = true",
+            (user_id, day),
+        )
+    else:
+        conn.execute(
+            "delete from nutrition_day_flags where user_id = %s and day = %s", (user_id, day)
+        )
+    return Response(status_code=204)
 
 
 @router.post("/copy", response_model=list[FoodLogOut], status_code=201)

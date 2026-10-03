@@ -1,7 +1,7 @@
 """Adaptive TDEE from logged intake and weight (spec §6.3).
 
 Energy balance over a window: what was eaten minus what the body stored or lost.
-    observed TDEE = mean daily intake − weight-trend slope (kg/day) × 7700 kcal/kg
+    observed TDEE = mean daily intake − weight slope (kg/day) × 7700 kcal/kg
 Observations are taken once a week, on the user's check-in day, from the 28 days before it,
 and smoothed into a running estimate that starts from the BMR × activity guess.
 """
@@ -11,12 +11,14 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from statistics import pstdev
 
-from app.calculations.series import Point
+from app.calculations.series import Point, ewma_trend
 
 WINDOW_DAYS = 28
 MIN_ELIGIBLE_DAYS = 14
 MIN_WEIGH_INS = 8
 MIN_WEIGHT_SPAN_DAYS = 14
+TREND_ALPHA = 0.1  # the weight trend from sub-project 1
+TREND_WARM_UP_DAYS = 14
 KCAL_PER_KG = 7700
 HALF_LOGGED = 0.5  # a day under half the target is treated as half-logged and skipped
 MAX_WEEKLY_STEP = 0.7  # a full window of logged days moves the estimate 70% of the way
@@ -63,19 +65,27 @@ def _slope_per_day(points: Sequence[Point]) -> float:
 
 
 def observe(
-    end: date, eligible: Mapping[date, float], weight_trend: Sequence[Point]
+    end: date,
+    eligible: Mapping[date, float],
+    weights: Sequence[Point],
+    weight_trend: Sequence[Point],
 ) -> Observation | None:
     """One energy-balance reading for the 28 days ending on `end`, or None without enough data.
 
-    `weight_trend` is the EWMA weight trend, one point per weigh-in day. The weight change is
-    the least-squares slope through the window's trend points rather than the difference of
-    its two ends, so a single day near either edge can't swing the reading.
+    The weight change is a least-squares slope through the window, so no single morning's
+    water weight decides it. It is fitted to the EWMA trend once the trend has two weeks of
+    history before the window; before that the trend is still catching up with any steady
+    loss or gain and would understate it, so the daily weights themselves are used.
     """
     start = end - timedelta(days=WINDOW_DAYS)
     intake = [kcal for d, kcal in eligible.items() if start < d <= end]
     if len(intake) < MIN_ELIGIBLE_DAYS:
         return None
-    inside = sorted((p for p in weight_trend if start < p.day <= end), key=lambda p: p.day)
+    warmed_up = bool(weight_trend) and weight_trend[0].day <= start - timedelta(
+        days=TREND_WARM_UP_DAYS
+    )
+    series = weight_trend if warmed_up else weights
+    inside = sorted((p for p in series if start < p.day <= end), key=lambda p: p.day)
     if len(inside) < MIN_WEIGH_INS:
         return None
     if (inside[-1].day - inside[0].day).days < MIN_WEIGHT_SPAN_DAYS:
@@ -109,11 +119,13 @@ class TdeeResult:
 
 def adaptive_tdee(
     eligible: Mapping[date, float],
-    weight_trend: Sequence[Point],
+    weights: Sequence[Point],
     seed: float,
     today: date,
     check_in_weekday: int,
 ) -> TdeeResult:
+    """`weights` are daily mean weigh-ins; `seed` is the BMR × activity starting estimate."""
+    weight_trend = ewma_trend(sorted(weights, key=lambda p: p.day), TREND_ALPHA)
     window_start = today - timedelta(days=WINDOW_DAYS)
     eligible_now = sum(1 for d in eligible if window_start < d <= today)
     if not eligible:
@@ -122,7 +134,7 @@ def adaptive_tdee(
     weekly: list[WeekEstimate] = []
     observed: list[float] = []
     for day in check_in_days(min(eligible), today, check_in_weekday):
-        obs = observe(day, eligible, weight_trend)
+        obs = observe(day, eligible, weights, weight_trend)
         if obs is not None:
             step = MAX_WEEKLY_STEP * min(obs.eligible_days, WINDOW_DAYS) / WINDOW_DAYS
             estimate += step * (obs.tdee - estimate)

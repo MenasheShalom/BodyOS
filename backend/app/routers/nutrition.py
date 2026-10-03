@@ -1,8 +1,9 @@
+from dataclasses import asdict
 from datetime import date, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.auth import current_user_id
 from app.clock import get_now
@@ -10,14 +11,24 @@ from app.db import Conn, get_conn
 from app.nutrition_schemas import (
     ActivityLevel,
     EstimateOut,
+    MacroTargets,
     Mode,
     NutritionSettingsIn,
     NutritionSettingsOut,
+    SuggestionOut,
     TargetsIn,
     TargetsOut,
+    TdeeOut,
+    TdeeWeekOut,
 )
 from app.profiles import load_profile
 from app.services.food_log_service import TARGET_COLUMNS, target_on
+from app.services.insight_service import (
+    check_in_week,
+    load_insight,
+    owed_suggestion,
+    weekly_intake,
+)
 from app.services.nutrition_service import NeedsData, estimate, load_settings, save_settings
 from app.services.series_service import local_today
 
@@ -112,3 +123,84 @@ def save_targets(
     ).fetchone()
     assert row is not None
     return row
+
+
+@router.get("/tdee", response_model=TdeeOut)
+def get_tdee(
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+    now: datetime = Depends(get_now),
+) -> TdeeOut:
+    profile = load_profile(conn, user_id)
+    today = local_today(now, profile)
+    try:
+        insight = load_insight(conn, user_id, profile, today)
+    except NeedsData as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    t = insight.tdee
+    return TdeeOut(
+        tdee=round(t.current),
+        confidence=None if t.confidence is None else round(t.confidence),
+        has_data=t.has_data,
+        eligible_days=t.eligible_days_now,
+        start_tdee=insight.start.tdee,
+        check_in_weekday=insight.settings.check_in_weekday,
+        weekly=[
+            TdeeWeekOut(
+                day=w.day,
+                observed=None if w.observed is None else round(w.observed),
+                tdee=round(w.smoothed),
+                intake=(
+                    None if (i := weekly_intake(insight.eligible, w.day)) is None else round(i)
+                ),
+            )
+            for w in t.weekly
+        ],
+    )
+
+
+@router.get("/suggestion", response_model=SuggestionOut | None)
+def get_suggestion(
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+    now: datetime = Depends(get_now),
+) -> SuggestionOut | None:
+    """This week's check-in, or null when nothing is owed."""
+    profile = load_profile(conn, user_id)
+    today = local_today(now, profile)
+    try:
+        insight = load_insight(conn, user_id, profile, today)
+    except NeedsData:
+        return None
+    assert profile is not None
+    owed = owed_suggestion(conn, user_id, profile, insight, today)
+    if owed is None:
+        return None
+    t = insight.tdee
+    return SuggestionOut(
+        week_start=owed.week_start,
+        tdee=round(t.current),
+        confidence=None if t.confidence is None else round(t.confidence),
+        targets=MacroTargets(**asdict(owed.suggestion.targets)),
+        current=None if owed.current is None else MacroTargets(**asdict(owed.current)),
+        capped=owed.suggestion.capped,
+        warning=owed.suggestion.warning,
+    )
+
+
+@router.post("/suggestion/dismiss", status_code=204)
+def dismiss_suggestion(
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+    now: datetime = Depends(get_now),
+) -> Response:
+    """Hide this week's check-in (the "Not this week" button)."""
+    profile = load_profile(conn, user_id)
+    settings = load_settings(conn, user_id)
+    week_start = check_in_week(local_today(now, profile), settings.check_in_weekday)
+    conn.execute(
+        "insert into target_suggestion_dismissals (user_id, week_start) values (%s, %s)"
+        " on conflict do nothing",
+        (user_id, week_start),
+    )
+    return Response(status_code=204)

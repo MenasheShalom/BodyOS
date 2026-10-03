@@ -1121,7 +1121,11 @@ Goal (spec §1 success criteria): after about 3 weeks of reasonably complete log
   - not flagged incomplete
   - kcal ≥ 50% of the target in force that day, or of the initial estimate when no target existed yet.
   - The same rule picks which days count in micronutrient averages and nutrition series, so a half-logged day never drags an average down anywhere.
-- **The weight change is the least-squares slope of the EWMA weight trend** (α 0.1, from sub-project 1) over the window's weigh-in days, needing ≥ 8 weigh-ins spanning ≥ 14 days. *(Changed while building: taking the trend values at the two window edges let one noisy reading at a window start swing the estimate by about 300 kcal, and a slope through the raw weights was noisier. Measured over 60 simulated runs, the trend slope was the most accurate once settled (median error about 20 kcal from week 8), and a 2 kg one-day water spike moved the estimate by at most 37 kcal.)*
+- **The weight change is a least-squares slope over the window**, needing ≥ 8 weigh-ins spanning ≥ 14 days. It is fitted to the EWMA weight trend (α 0.1, from sub-project 1) once the trend has ≥ 14 days of history before the window, and to the daily weights before that.
+  *(Changed while building, after simulations over 60 runs:)*
+  - Taking the trend at the two window edges let one noisy reading swing the estimate by about 300 kcal.
+  - The trend alone lags a steady loss in the first weeks: a user losing 0.35 kg a week read about 120 kcal low, right when the first suggestions appear.
+  - The hybrid keeps the trend's accuracy once settled (median error 21 kcal at week 8) and halves the early error (median 73 kcal at week 4, against 130).
 - **Smoothing step:** `0.7 × eligible days/28` per check-in, raised from the spec's 0.5, which took about 9 weeks to close a 400 kcal starting error.
 - **A suggestion is owed when** all of these hold:
   - the most recent check-in day ≤ today
