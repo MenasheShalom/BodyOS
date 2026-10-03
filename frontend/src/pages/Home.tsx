@@ -3,6 +3,8 @@ import { Link } from "react-router";
 import { type LogTab, useLogSheet } from "../components/AppLayout";
 import { EmptyState, ErrorState, Spinner } from "../components/EmptyState";
 import { GoalProgress } from "../components/GoalProgress";
+import { CheckInCard } from "../components/nutrition/CheckInCard";
+import { FoodTodayCard } from "../components/nutrition/FoodTodayCard";
 import { RecentWeighIns } from "../components/RecentWeighIns";
 import { StatCard } from "../components/StatCard";
 import type { Direction } from "../lib/format";
@@ -25,6 +27,9 @@ const MARKER: Record<string, string> = {
 
 export function nudgeMessages(n: Dashboard["nudges"]): { text: string; tab: LogTab }[] {
   const out: { text: string; tab: LogTab }[] = [];
+  if (n.no_food_today) {
+    out.push({ text: "Nothing logged for food today yet", tab: "food" });
+  }
   if (n.days_since_weigh_in != null && n.days_since_weigh_in >= 2) {
     out.push({ text: `Last weigh-in: ${n.days_since_weigh_in} days ago`, tab: "weigh-in" });
   }
@@ -82,6 +87,8 @@ export function Home() {
         </button>
       ))}
 
+      {d.check_in && <CheckInCard suggestion={d.check_in} />}
+
       <section aria-label="Body composition" className="grid grid-cols-2 gap-3">
         {d.hero.map((s) => (
           <StatCard
@@ -93,6 +100,8 @@ export function Home() {
           />
         ))}
       </section>
+
+      {d.food_today && <FoodTodayCard food={d.food_today} />}
 
       <section className="grid grid-cols-2 gap-3">
         {d.cards.map((s) => (

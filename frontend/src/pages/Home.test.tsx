@@ -8,6 +8,9 @@ vi.mock("../lib/queries", () => ({ useDashboard: () => useDashboard() }));
 vi.mock("../components/AppLayout", () => ({ useLogSheet: () => ({ open: vi.fn() }) }));
 vi.mock("../components/charts/Sparkline", () => ({ Sparkline: () => null }));
 vi.mock("../components/RecentWeighIns", () => ({ RecentWeighIns: () => <p>recent weigh-ins</p> }));
+vi.mock("../components/nutrition/CheckInCard", () => ({
+  CheckInCard: () => <p>check-in card</p>,
+}));
 
 import { Home, nudgeMessages } from "./Home";
 
@@ -93,6 +96,59 @@ describe("nudgeMessages", () => {
     ).toEqual(["Last weigh-in: 2 days ago", "No progress photos yet. Add your first?"]);
     expect(nudgeMessages({ days_since_weigh_in: 1, days_since_photo: 30 })[0].text).toBe(
       "No photos in 4 weeks. Time for a check-in?",
+    );
+  });
+
+  it("nudges when nothing is logged for food in the afternoon", () => {
+    expect(
+      nudgeMessages({ days_since_weigh_in: 0, days_since_photo: 3, no_food_today: true }),
+    ).toEqual([{ text: "Nothing logged for food today yet", tab: "food" }]);
+  });
+});
+
+describe("Home nutrition", () => {
+  it("shows the check-in and today's food against targets", () => {
+    useDashboard.mockReturnValue({
+      isPending: false,
+      data: {
+        ...empty,
+        hero: [m("fat_mass_kg", "Fat mass", "kg", 14.8), m("lean_mass_kg", "Lean mass", "kg", 65)],
+        check_in: { week_start: "2026-03-01" },
+        food_today: {
+          energy_kcal: 1220,
+          protein_g: 96,
+          target_kcal: 2280,
+          target_protein_g: 170,
+          entries: 3,
+        },
+      },
+    });
+    renderHome();
+    expect(screen.getByText("check-in card")).toBeInTheDocument();
+    const card = screen.getByRole("link", { name: "Today's food" });
+    expect(card).toHaveAttribute("href", "/food");
+    expect(card).toHaveTextContent("1,220 / 2,280 kcal");
+    expect(card).toHaveTextContent("96 / 170 g");
+  });
+
+  it("shows plain totals before targets are set", () => {
+    useDashboard.mockReturnValue({
+      isPending: false,
+      data: {
+        ...empty,
+        hero: [m("fat_mass_kg", "Fat mass", "kg", 14.8), m("lean_mass_kg", "Lean mass", "kg", 65)],
+        food_today: {
+          energy_kcal: 800,
+          protein_g: 40,
+          target_kcal: null,
+          target_protein_g: null,
+          entries: 1,
+        },
+      },
+    });
+    renderHome();
+    expect(screen.getByRole("link", { name: "Today's food" })).toHaveTextContent(
+      "800 kcal · 40 g protein",
     );
   });
 });
