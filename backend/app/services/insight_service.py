@@ -1,7 +1,7 @@
 """Adaptive TDEE, weekly suggestions and the inputs they share (spec §6.3–6.4)."""
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from typing import Any
 from uuid import UUID
@@ -18,9 +18,9 @@ from app.calculations.series import Point, daily_means, ewma_trend, weekly_rate
 from app.calculations.tdee import TdeeResult, adaptive_tdee, eligible_days
 from app.db import Conn
 from app.metrics import METRICS, load_readings
-from app.nutrition_schemas import EstimateOut, NutritionSettingsOut
+from app.nutrition_schemas import EstimateOut, MacroTargets, NutritionSettingsOut, SuggestionOut
 from app.profiles import Profile
-from app.services.nutrition_service import estimate, load_settings
+from app.services.nutrition_service import NeedsData, estimate, load_settings
 
 TARGET_COLUMNS = "effective_from, energy_kcal, protein_g, carbs_g, fat_g, fiber_g"
 
@@ -171,3 +171,30 @@ def owed_suggestion(
 
 def eligible_in_window(eligible: dict[date, float], today: date, days: int) -> dict[date, float]:
     return {d: k for d, k in eligible.items() if today - timedelta(days=days) < d <= today}
+
+
+def suggestion_out(insight: Insight, owed: OwedSuggestion) -> SuggestionOut:
+    t = insight.tdee
+    return SuggestionOut(
+        week_start=owed.week_start,
+        tdee=round(t.current),
+        confidence=None if t.confidence is None else round(t.confidence),
+        targets=MacroTargets(**asdict(owed.suggestion.targets)),
+        current=None if owed.current is None else MacroTargets(**asdict(owed.current)),
+        capped=owed.suggestion.capped,
+        warning=owed.suggestion.warning,
+    )
+
+
+def check_in_for(
+    conn: Conn, user_id: UUID, profile: Profile | None, today: date
+) -> SuggestionOut | None:
+    """This week's check-in suggestion, or None (also when there isn't enough to estimate)."""
+    if profile is None:
+        return None
+    try:
+        insight = load_insight(conn, user_id, profile, today)
+    except NeedsData:
+        return None
+    owed = owed_suggestion(conn, user_id, profile, insight, today)
+    return None if owed is None else suggestion_out(insight, owed)

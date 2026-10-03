@@ -77,5 +77,24 @@ def series_for(
     today: date,
 ) -> SeriesResult:
     spec = METRICS[metric]
+    if spec.source == "nutrition":
+        from app.services.nutrition_series import build_nutrition_series
+
+        points, trend, range_change = build_nutrition_series(
+            conn, user_id, spec, profile, RANGE_DAYS[range_key], today
+        )
+        values = [p.value for p in points]
+        return SeriesResult(
+            metric=spec.key,
+            label=spec.label,
+            unit=spec.unit,
+            points=points,
+            trend=trend,
+            change=range_change,
+            weekly_rate=None,  # a weekly rate of intake isn't meaningful
+            min=min(values) if values else None,
+            max=max(values) if values else None,
+            latest=trend[-1].value if trend else None,
+        )
     tz = profile.tz if profile else UTC_ZONE
     return build_series(load_readings(conn, user_id, metric, profile), spec, tz, range_key, today)

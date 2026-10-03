@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from datetime import date, datetime, timedelta
 from typing import Any
 from uuid import UUID
@@ -11,7 +10,6 @@ from app.db import Conn, get_conn
 from app.nutrition_schemas import (
     ActivityLevel,
     EstimateOut,
-    MacroTargets,
     MicrosOut,
     Mode,
     NutritionSettingsIn,
@@ -25,9 +23,9 @@ from app.nutrition_schemas import (
 from app.profiles import load_profile
 from app.services.food_log_service import TARGET_COLUMNS, target_on
 from app.services.insight_service import (
+    check_in_for,
     check_in_week,
     load_insight,
-    owed_suggestion,
     weekly_intake,
 )
 from app.services.micros_service import micros
@@ -169,25 +167,7 @@ def get_suggestion(
 ) -> SuggestionOut | None:
     """This week's check-in, or null when nothing is owed."""
     profile = load_profile(conn, user_id)
-    today = local_today(now, profile)
-    try:
-        insight = load_insight(conn, user_id, profile, today)
-    except NeedsData:
-        return None
-    assert profile is not None
-    owed = owed_suggestion(conn, user_id, profile, insight, today)
-    if owed is None:
-        return None
-    t = insight.tdee
-    return SuggestionOut(
-        week_start=owed.week_start,
-        tdee=round(t.current),
-        confidence=None if t.confidence is None else round(t.confidence),
-        targets=MacroTargets(**asdict(owed.suggestion.targets)),
-        current=None if owed.current is None else MacroTargets(**asdict(owed.current)),
-        capped=owed.suggestion.capped,
-        warning=owed.suggestion.warning,
-    )
+    return check_in_for(conn, user_id, profile, local_today(now, profile))
 
 
 @router.post("/suggestion/dismiss", status_code=204)

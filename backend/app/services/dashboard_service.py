@@ -5,10 +5,13 @@ from uuid import UUID
 from app.crud import list_rows
 from app.db import Conn
 from app.profiles import Profile
+from app.services.food_log_service import food_day
 from app.services.goal_service import goal_with_projection
+from app.services.insight_service import check_in_for
 from app.services.series_service import UTC_ZONE, local_today, series_for
 
 HERO = ["fat_mass_kg", "lean_mass_kg"]
+NO_FOOD_NUDGE_HOUR = 14  # local time after which an empty food day earns a nudge
 CARDS = ["body_fat_pct", "muscle_mass_kg"]
 SECONDARY = ["weight_kg", "bmi", "waist_cm"]
 
@@ -62,7 +65,18 @@ def build_dashboard(
     def group(metrics: list[str]) -> list[dict[str, Any]]:
         return [_summary(conn, user_id, m, profile, today, directions) for m in metrics]
 
+    tz = profile.tz if profile else UTC_ZONE
+    day = food_day(conn, user_id, today, tz)
+    target = day.target
     return {
+        "food_today": {
+            "energy_kcal": round(day.totals.get("energy_kcal", 0.0)),
+            "protein_g": round(day.totals.get("protein_g", 0.0)),
+            "target_kcal": target.energy_kcal if target else None,
+            "target_protein_g": target.protein_g if target else None,
+            "entries": len(day.entries),
+        },
+        "check_in": check_in_for(conn, user_id, profile, today),
         "hero": group(HERO),
         "cards": group(CARDS),
         "secondary": group(SECONDARY),
@@ -82,5 +96,6 @@ def build_dashboard(
                 profile,
                 today,
             ),
+            "no_food_today": not day.entries and now.astimezone(tz).hour >= NO_FOOD_NUDGE_HOUR,
         },
     }
