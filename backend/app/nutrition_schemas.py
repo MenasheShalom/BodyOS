@@ -375,3 +375,21 @@ class FoodDaySummaryOut(BaseModel):
     protein_g: float
     entries: int
     excluded: bool
+
+
+MicroStatus = Literal["low", "ok", "over_limit", "not_enough_data", "no_reference"]
+
+
+class MicroOut(BaseModel):
+    key: str
+    average: float | None  # per counted day, from the entries that report it
+    reference: float | None
+    kind: Literal["target", "limit"] | None
+    coverage: float  # share of calories from entries that report this nutrient
+    status: MicroStatus
+
+
+class MicrosOut(BaseModel):
+    window: int
+    days_counted: int
+    nutrients: list[MicroOut]

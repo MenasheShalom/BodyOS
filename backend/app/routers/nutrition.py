@@ -12,6 +12,7 @@ from app.nutrition_schemas import (
     ActivityLevel,
     EstimateOut,
     MacroTargets,
+    MicrosOut,
     Mode,
     NutritionSettingsIn,
     NutritionSettingsOut,
@@ -29,6 +30,7 @@ from app.services.insight_service import (
     owed_suggestion,
     weekly_intake,
 )
+from app.services.micros_service import micros
 from app.services.nutrition_service import NeedsData, estimate, load_settings, save_settings
 from app.services.series_service import local_today
 
@@ -204,3 +206,19 @@ def dismiss_suggestion(
         (user_id, week_start),
     )
     return Response(status_code=204)
+
+
+@router.get("/micros", response_model=MicrosOut)
+def get_micros(
+    window: int = 7,
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+    now: datetime = Depends(get_now),
+) -> MicrosOut:
+    """Daily averages over the last 7 or 28 days against reference intakes."""
+    if window not in (7, 28):
+        raise HTTPException(status_code=422, detail="Choose a 7 or 28 day window")
+    profile = load_profile(conn, user_id)
+    if profile is None:
+        raise HTTPException(status_code=409, detail="Complete your profile first")
+    return micros(conn, user_id, profile, local_today(now, profile), window)

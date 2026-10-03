@@ -69,9 +69,27 @@ class Insight:
     targets: list[dict[str, Any]]
 
 
+def food_days(
+    conn: Conn, user_id: UUID, profile: Profile, fallback_kcal: float | None
+) -> dict[date, float]:
+    """Eligible days and their calories: not flagged incomplete and at least half the target
+    in force (or `fallback_kcal` before any target existed)."""
+    targets = target_history(conn, user_id)
+
+    def reference(day: date) -> float:
+        in_force = [t for t in targets if t["effective_from"] <= day]
+        if in_force:
+            return float(in_force[-1]["energy_kcal"])
+        return fallback_kcal or 0.0
+
+    return eligible_days(
+        day_kcal(conn, user_id, profile.tz), excluded_days(conn, user_id), reference
+    )
+
+
 def load_insight(conn: Conn, user_id: UUID, profile: Profile | None, today: date) -> Insight:
-    """Everything the TDEE, suggestion, micros and nutrition series need. Raises NeedsData
-    without a profile or a weigh-in."""
+    """Everything the TDEE, suggestion and nutrition series need. Raises NeedsData without a
+    profile or a weigh-in."""
     settings = load_settings(conn, user_id)
     start = estimate(
         conn,
@@ -84,8 +102,6 @@ def load_insight(conn: Conn, user_id: UUID, profile: Profile | None, today: date
         protein_g_per_kg=settings.protein_g_per_kg,
     )
     assert profile is not None  # estimate() raises NeedsData without one
-    tz = profile.tz
-    targets = target_history(conn, user_id)
     fallback = kcal_target(
         start.tdee,
         mode=settings.mode,
@@ -93,16 +109,11 @@ def load_insight(conn: Conn, user_id: UUID, profile: Profile | None, today: date
         bmr_kcal=start.bmr,
         sex=profile.sex,
     )
-
-    def reference(day: date) -> float:
-        in_force = [t for t in targets if t["effective_from"] <= day]
-        return float(in_force[-1]["energy_kcal"]) if in_force else fallback
-
-    eligible = eligible_days(day_kcal(conn, user_id, tz), excluded_days(conn, user_id), reference)
-    weights = daily_means(load_readings(conn, user_id, "weight_kg", profile), tz)
+    eligible = food_days(conn, user_id, profile, fallback)
+    weights = daily_means(load_readings(conn, user_id, "weight_kg", profile), profile.tz)
     trend = ewma_trend(weights, METRICS["weight_kg"].alpha)
     tdee = adaptive_tdee(eligible, weights, start.tdee, today, settings.check_in_weekday)
-    return Insight(settings, start, tdee, eligible, trend, targets)
+    return Insight(settings, start, tdee, eligible, trend, target_history(conn, user_id))
 
 
 def check_in_week(today: date, weekday: int) -> date:
