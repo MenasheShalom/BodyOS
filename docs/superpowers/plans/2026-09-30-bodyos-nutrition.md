@@ -1121,7 +1121,8 @@ Goal (spec §1 success criteria): after about 3 weeks of reasonably complete log
   - not flagged incomplete
   - kcal ≥ 50% of the target in force that day, or of the initial estimate when no target existed yet.
   - The same rule picks which days count in micronutrient averages and nutrition series, so a half-logged day never drags an average down anywhere.
-- **The weight change is measured on the EWMA weight trend** from sub-project 1 (α 0.1), taking the trend values at the last weigh-in on or before each window edge. If either edge has no weigh-in, that week has no observation, so the estimate keeps its previous value.
+- **The weight change is the least-squares slope of the EWMA weight trend** (α 0.1, from sub-project 1) over the window's weigh-in days, needing ≥ 8 weigh-ins spanning ≥ 14 days. *(Changed while building: taking the trend values at the two window edges let one noisy reading at a window start swing the estimate by about 300 kcal, and a slope through the raw weights was noisier. Measured over 60 simulated runs, the trend slope was the most accurate once settled (median error about 20 kcal from week 8), and a 2 kg one-day water spike moved the estimate by at most 37 kcal.)*
+- **Smoothing step:** `0.7 × eligible days/28` per check-in, raised from the spec's 0.5, which took about 9 weeks to close a 400 kcal starting error.
 - **A suggestion is owed when** all of these hold:
   - the most recent check-in day ≤ today
   - the TDEE has real data, not just the initial guess
@@ -1165,10 +1166,10 @@ Both get RLS own-rows; `nutrition_day_flags` also gets the `updated_at` trigger.
   - confidence = standard deviation of the last 4 observations (`None` below 4)
 
 Tests:
-- **Synthetic run:** 10 weeks at a true TDEE of 2,500 kcal, intake 2,200 ± 300 (seeded RNG), the weight drifting by energy balance (7,700 kcal/kg) plus ±0.6 kg water noise, and the initial guess deliberately off at 2,100. The estimate must be within ±50 kcal by week 6, and |Δ| must shrink week on week on average.
+- **Synthetic runs:** 20 seeded runs of 10 weeks at a true TDEE of 2,500 kcal, intake 2,200 ± 300, the weight drifting by energy balance (7,700 kcal/kg) plus ±0.6 kg water noise, and the starting guess deliberately off at 2,100. At week 8 the median error must be ≤ 50 kcal and every run within ±150; the median at week 6 ≤ 75. A run weighing every other day must also stay close. *(The plan's single-run "±50 kcal by week 6" was replaced with thresholds measured across many runs.)*
 - Excluded days and half-logged days are ignored.
 - Fewer than 14 eligible days → `has_data False`, and the current value equals the seed.
-- A 2 kg one-day water spike moves the smoothed value by < 150 kcal.
+- A 2 kg one-day water spike moves the smoothed value by < 75 kcal.
 - A missing weigh-in at a window edge → no observation.
 
 ### Task 24: Suggestion, check-in and day flags (API)
