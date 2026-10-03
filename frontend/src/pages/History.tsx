@@ -1,11 +1,13 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { EmptyState, Spinner } from "../components/EmptyState";
 import { Modal } from "../components/Modal";
 import { MeasurementForm } from "../forms/MeasurementForm";
 import { WeighInForm } from "../forms/WeighInForm";
 import { formatDateTime, formatValue } from "../lib/format";
 import { TAPE_FIELDS } from "../lib/metrics";
-import { bodyEntries, measurements, useProfile } from "../lib/queries";
+import { addDays, dayLabel, isoDay } from "../lib/meals";
+import { bodyEntries, measurements, useFoodDays, useProfile } from "../lib/queries";
 import type { BodyEntry, Measurement } from "../lib/types";
 
 type Editing =
@@ -17,7 +19,7 @@ const row = "flex items-center justify-between gap-3 px-4 py-3";
 const action = "rounded-lg bg-surface-2 px-2.5 py-1 text-xs";
 
 export function History() {
-  const [tab, setTab] = useState<"weigh-ins" | "measurements">("weigh-ins");
+  const [tab, setTab] = useState<"weigh-ins" | "measurements" | "food">("weigh-ins");
   const [editing, setEditing] = useState<Editing>(null);
   const profile = useProfile();
   const entries = bodyEntries.useList();
@@ -35,7 +37,7 @@ export function History() {
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">History</h1>
       <div role="tablist" className="flex gap-1 rounded-xl bg-surface-2 p-1">
-        {(["weigh-ins", "measurements"] as const).map((t) => (
+        {(["weigh-ins", "measurements", "food"] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -46,7 +48,7 @@ export function History() {
               tab === t ? "bg-surface shadow-sm" : "text-muted"
             }`}
           >
-            {t === "weigh-ins" ? "Weigh-ins" : "Measurements"}
+            {t === "weigh-ins" ? "Weigh-ins" : t === "measurements" ? "Measurements" : "Food"}
           </button>
         ))}
       </div>
@@ -93,6 +95,8 @@ export function History() {
           </ul>
         </>
       )}
+
+      {tab === "food" && <FoodHistory />}
 
       {tab === "measurements" && (
         <>
@@ -163,5 +167,39 @@ export function History() {
         </Modal>
       )}
     </section>
+  );
+}
+
+const FOOD_DAYS = 30;
+
+function FoodHistory() {
+  const today = isoDay(new Date());
+  const days = useFoodDays(addDays(today, -(FOOD_DAYS - 1)), today);
+  const now = new Date();
+  if (days.isPending) return <Spinner />;
+  if (days.isError) return <EmptyState title="Couldn't load your food history" />;
+  if (days.data.length === 0) {
+    return <EmptyState title="No food logged in the last 30 days" />;
+  }
+  return (
+    <ul className="divide-y divide-border overflow-hidden rounded-2xl bg-surface">
+      {days.data.map((d) => (
+        <li key={d.day}>
+          <Link to={`/food?day=${d.day}`} className={row}>
+            <span>
+              <span className="block">{dayLabel(d.day, now)}</span>
+              <span className="block text-xs text-muted">
+                {d.entries} {d.entries === 1 ? "entry" : "entries"}
+                {d.excluded && " · marked incomplete"}
+              </span>
+            </span>
+            <span className="tabular text-right text-sm">
+              {Math.round(d.energy_kcal).toLocaleString("en-GB")} kcal
+              <span className="block text-xs text-muted">{Math.round(d.protein_g)} g protein</span>
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
