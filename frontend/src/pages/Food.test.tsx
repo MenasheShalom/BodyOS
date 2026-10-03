@@ -7,13 +7,21 @@ import { isoDay } from "../lib/meals";
 const useFoodDay = vi.fn();
 const useNutritionSettings = vi.fn();
 const open = vi.fn();
+const flag = vi.fn();
+const useSuggestion = vi.fn();
 vi.mock("../lib/queries", () => ({
   useFoodDay: (day: string) => useFoodDay(day),
   useNutritionSettings: () => useNutritionSettings(),
+  useSuggestion: () => useSuggestion(),
+  useFlagDay: () => ({ mutate: flag, isPending: false }),
   useUpdateLogEntry: () => ({ mutateAsync: vi.fn() }),
   useDeleteLogEntry: () => ({ mutate: vi.fn() }),
 }));
 vi.mock("../components/AppLayout", () => ({ useLogSheet: () => ({ open }) }));
+vi.mock("../components/nutrition/NutrientsTab", () => ({ NutrientsTab: () => <p>nutrients</p> }));
+vi.mock("../components/nutrition/CheckInCard", () => ({
+  CheckInCard: () => <p>check-in card</p>,
+}));
 
 import { Food } from "./Food";
 
@@ -21,7 +29,7 @@ const today = isoDay(new Date());
 const emptyDay = (day: string) => ({
   isPending: false,
   isError: false,
-  data: { day, entries: [], totals: {}, coverage: {}, target: null },
+  data: { day, entries: [], totals: {}, coverage: {}, target: null, excluded: false },
 });
 const renderAt = (url: string) =>
   render(
@@ -34,6 +42,7 @@ describe("Food", () => {
   beforeEach(() => {
     useFoodDay.mockImplementation(emptyDay);
     useNutritionSettings.mockReturnValue({ data: { configured: true } });
+    useSuggestion.mockReturnValue({ data: null });
   });
 
   it("shows today with next disabled", () => {
@@ -71,5 +80,50 @@ describe("Food", () => {
       "href",
       "/nutrition/setup",
     );
+  });
+
+  it("shows the check-in card when one is owed", () => {
+    useSuggestion.mockReturnValue({ data: { week_start: "2026-03-01" } });
+    renderAt("/food");
+    expect(screen.getByText("check-in card")).toBeInTheDocument();
+  });
+
+  it("switches to the Nutrients tab", async () => {
+    renderAt("/food");
+    await userEvent.click(screen.getByRole("tab", { name: "Nutrients" }));
+    expect(screen.getByText("nutrients")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing logged")).not.toBeInTheDocument();
+  });
+
+  it("marks a logged day incomplete and back", async () => {
+    const entry = {
+      id: "e1",
+      eaten_at: "2026-01-15T08:00:00Z",
+      meal: "breakfast",
+      food_id: null,
+      name: "Quick add",
+      grams: null,
+      serving_label: null,
+      serving_count: null,
+      nutrients: { energy_kcal: 400 },
+      meal_ref: null,
+    };
+    useFoodDay.mockImplementation((day: string) => ({
+      ...emptyDay(day),
+      data: { ...emptyDay(day).data, entries: [entry] },
+    }));
+    const { unmount } = renderAt("/food?day=2026-01-15");
+    await userEvent.click(screen.getByRole("button", { name: /Mark day incomplete/ }));
+    expect(flag).toHaveBeenCalledWith({ day: "2026-01-15", excluded: true });
+    unmount();
+
+    useFoodDay.mockImplementation((day: string) => ({
+      ...emptyDay(day),
+      data: { ...emptyDay(day).data, entries: [entry], excluded: true },
+    }));
+    renderAt("/food?day=2026-01-15");
+    expect(screen.getByRole("status")).toHaveTextContent("Marked incomplete");
+    await userEvent.click(screen.getByRole("button", { name: "Count this day again" }));
+    expect(flag).toHaveBeenLastCalledWith({ day: "2026-01-15", excluded: false });
   });
 });
