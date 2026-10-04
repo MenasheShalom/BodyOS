@@ -75,7 +75,7 @@ test("upload progress photos and compare them", async ({ page }) => {
   await signIn(page);
   for (const daysAgo of [10, 1]) {
     await page.getByRole("button", { name: "Log", exact: true }).click();
-    await page.getByRole("tab", { name: "Photo" }).click();
+    await page.getByRole("tab", { name: "Photo", exact: true }).click();
     await page
       .getByLabel("Choose from gallery")
       .setInputFiles({ name: "front.png", mimeType: "image/png", buffer: PNG });

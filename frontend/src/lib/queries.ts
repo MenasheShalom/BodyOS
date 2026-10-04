@@ -1,6 +1,9 @@
 import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
 import type {
+  AiSettings,
+  AiStatus,
+  BatchEntry,
   BodyEntry,
   CopyInput,
   Meal,
@@ -38,6 +41,7 @@ import type {
   Profile,
   RangeKey,
   Series,
+  FoodPhotoResult,
 } from "./types";
 
 export const qk = {
@@ -62,6 +66,8 @@ export const qk = {
   suggestion: ["nutrition-suggestion"] as const,
   micros: (window: number) => ["nutrition-micros", window] as const,
   foodDays: (from: string, to: string) => ["food-days", from, to] as const,
+  aiStatus: ["ai-status"] as const,
+  aiSettings: ["ai-settings"] as const,
   estimate: (p: EstimateParams) =>
     ["nutrition-estimate", p.mode, p.activity_level, p.deficit_pct, p.protein_g_per_kg] as const,
 };
@@ -454,3 +460,41 @@ export function useFoodDays(from: string, to: string) {
     queryFn: () => api<FoodDaySummary[]>(`/food-log/days?from=${from}&to=${to}`),
   });
 }
+
+export function useAiStatus() {
+  return useQuery({ queryKey: qk.aiStatus, queryFn: () => api<AiStatus>("/ai/status") });
+}
+
+export function useAiSettings() {
+  return useQuery({ queryKey: qk.aiSettings, queryFn: () => api<AiSettings>("/ai/settings") });
+}
+
+export function useSaveAiSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (s: AiSettings) => api<AiSettings>("/ai/settings", { method: "PUT", json: s }),
+    onSuccess: (s) => {
+      qc.setQueryData(qk.aiSettings, s);
+      void qc.invalidateQueries({ queryKey: qk.aiStatus });
+    },
+  });
+}
+
+export function useFoodPhoto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ image, hint }: { image: Blob; hint: string }) => {
+      const form = new FormData();
+      form.append("image", image, "photo.jpg");
+      if (hint.trim()) form.append("hint", hint.trim());
+      return api<FoodPhotoResult>("/ai/food-photo", { method: "POST", body: form });
+    },
+    // Every attempt (even a failed one) can change this month's usage count.
+    onSettled: () => void qc.invalidateQueries({ queryKey: qk.aiStatus }),
+  });
+}
+
+export const useLogBatch = () =>
+  useLogMutation((entries: BatchEntry[]) =>
+    api<FoodLogEntry[]>("/food-log/batch", { method: "POST", json: { entries } }),
+  );

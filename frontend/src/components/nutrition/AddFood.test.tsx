@@ -31,7 +31,9 @@ const logMeal = vi.fn().mockResolvedValue([]);
 const recent = vi.fn();
 const favourites = vi.fn();
 const savedMeals = vi.fn();
+const aiStatus = vi.fn();
 vi.mock("../../lib/queries", () => ({
+  useAiStatus: () => aiStatus(),
   useFoodSearch: (q: string, external: boolean, enabled = true) => search(q, external, enabled),
   useImportFood: () => ({ mutateAsync: importFood }),
   useBarcodeLookup: () => ({ mutateAsync: lookUp, isPending: false }),
@@ -42,6 +44,9 @@ vi.mock("../../lib/queries", () => ({
   useFavourites: () => favourites(),
   useSavedMeals: () => savedMeals(),
   useSetFavourite: () => ({ mutate: vi.fn() }),
+}));
+vi.mock("../ai/PhotoLog", () => ({
+  PhotoLog: () => <p>photo logging</p>,
 }));
 vi.mock("./BarcodeScanner", () => ({
   BarcodeScanner: ({ onCode }: { onCode: (code: string) => void }) => (
@@ -64,6 +69,7 @@ describe("AddFood", () => {
     recent.mockReturnValue({ data: [] });
     favourites.mockReturnValue({ data: [] });
     savedMeals.mockReturnValue({ data: [] });
+    aiStatus.mockReturnValue({ data: { enabled: false } });
   });
   afterEach(() => vi.useRealTimers());
 
@@ -207,5 +213,15 @@ describe("AddFood", () => {
     await user.click(screen.getByRole("button", { name: "Scan barcode" }));
     await user.click(screen.getByRole("button", { name: "fake scan" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Food database unavailable");
+  });
+
+  it("offers a Meal photo tab only when AI is on", async () => {
+    const { user } = setup();
+    expect(screen.queryByRole("tab", { name: "Meal photo" })).not.toBeInTheDocument();
+    aiStatus.mockReturnValue({ data: { enabled: true } });
+    setup();
+    const photoTabs = screen.getAllByRole("tab", { name: "Meal photo" });
+    await user.click(photoTabs[0]);
+    expect(screen.getByText("photo logging")).toBeInTheDocument();
   });
 });

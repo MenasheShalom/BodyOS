@@ -1,0 +1,11 @@
+{
+  "items": [
+    {"name": "Grilled chicken breast", "grams": 150, "energy_kcal": 248, "protein_g": 46.5,
+     "carbs_g": 0, "fat_g": 5.4, "confidence": "high", "search_query": "chicken breast grilled"},
+    {"name": "White rice", "grams": 180, "energy_kcal": 234, "protein_g": 4.9, "carbs_g": 51,
+     "fat_g": 0.5, "confidence": "medium", "search_query": "white rice cooked"},
+    {"name": "Israeli salad", "grams": 120, "energy_kcal": 90, "protein_g": 1.2, "carbs_g": 6,
+     "fat_g": 7, "confidence": "low", "search_query": "cucumber tomato salad"}
+  ],
+  "notes": "The rice portion is partly hidden; check the amount."
+}

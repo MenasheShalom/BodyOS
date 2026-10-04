@@ -12,6 +12,8 @@ from app.clock import get_now
 from app.crud import delete_row, get_row, require
 from app.db import Conn, get_conn
 from app.nutrition_schemas import (
+    BatchFoodIn,
+    BatchLogIn,
     CopyIn,
     DayFlagIn,
     FoodDayOut,
@@ -53,6 +55,33 @@ def _insert(conn: Conn, user_id: UUID, values: dict[str, Any]) -> dict[str, Any]
     return row
 
 
+def _food_values(conn: Conn, user_id: UUID, body: FoodLogIn, now: datetime) -> dict[str, Any]:
+    check_not_future("eaten_at", body.eaten_at, now)
+    food = visible_food(conn, user_id, body.food_id)
+    if food is None:
+        raise HTTPException(status_code=404, detail="Food not found")
+    return {
+        "eaten_at": body.eaten_at,
+        "meal": body.meal,
+        "food_id": body.food_id,
+        "name": food["name"],
+        "grams": body.grams,
+        "serving_label": body.serving_label,
+        "serving_count": body.serving_count,
+        "nutrients": Jsonb(scale(food["nutrients_per_100g"], body.grams)),
+    }
+
+
+def _quick_values(body: QuickAddIn, now: datetime) -> dict[str, Any]:
+    check_not_future("eaten_at", body.eaten_at, now)
+    return {
+        "eaten_at": body.eaten_at,
+        "meal": body.meal,
+        "name": body.name,
+        "nutrients": Jsonb(body.nutrients),
+    }
+
+
 @router.post("", response_model=FoodLogOut, status_code=201)
 def log_food(
     body: FoodLogIn,
@@ -60,24 +89,7 @@ def log_food(
     conn: Conn = Depends(get_conn, scope="function"),
     now: datetime = Depends(get_now),
 ) -> dict[str, Any]:
-    check_not_future("eaten_at", body.eaten_at, now)
-    food = visible_food(conn, user_id, body.food_id)
-    if food is None:
-        raise HTTPException(status_code=404, detail="Food not found")
-    return _insert(
-        conn,
-        user_id,
-        {
-            "eaten_at": body.eaten_at,
-            "meal": body.meal,
-            "food_id": body.food_id,
-            "name": food["name"],
-            "grams": body.grams,
-            "serving_label": body.serving_label,
-            "serving_count": body.serving_count,
-            "nutrients": Jsonb(scale(food["nutrients_per_100g"], body.grams)),
-        },
-    )
+    return _insert(conn, user_id, _food_values(conn, user_id, body, now))
 
 
 @router.post("/quick", response_model=FoodLogOut, status_code=201)
@@ -87,17 +99,30 @@ def quick_add(
     conn: Conn = Depends(get_conn, scope="function"),
     now: datetime = Depends(get_now),
 ) -> dict[str, Any]:
-    check_not_future("eaten_at", body.eaten_at, now)
-    return _insert(
-        conn,
-        user_id,
+    return _insert(conn, user_id, _quick_values(body, now))
+
+
+@router.post("/batch", response_model=list[FoodLogOut], status_code=201)
+def log_batch(
+    body: BatchLogIn,
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+    now: datetime = Depends(get_now),
+) -> list[dict[str, Any]]:
+    """Several entries in one transaction, e.g. the items read from a food photo. Any invalid
+    entry fails the whole request."""
+    values = [
         {
-            "eaten_at": body.eaten_at,
-            "meal": body.meal,
-            "name": body.name,
-            "nutrients": Jsonb(body.nutrients),
-        },
-    )
+            **(
+                _food_values(conn, user_id, e, now)
+                if isinstance(e, BatchFoodIn)
+                else _quick_values(e, now)
+            ),
+            "origin": e.origin,
+        }
+        for e in body.entries
+    ]
+    return [_insert(conn, user_id, v) for v in values]
 
 
 MAX_DAYS_LISTED = 92
@@ -202,6 +227,7 @@ def copy_entries(
                     "serving_count": r["serving_count"],
                     "nutrients": Jsonb(r["nutrients"]),
                     "meal_ref": meal_ref,
+                    "origin": r["origin"],  # a copied estimate is still an estimate
                 },
             )
         )

@@ -16,6 +16,7 @@ const entry = (over: Partial<FoodLogEntry>): FoodLogEntry => ({
   serving_count: 2,
   nutrients: { energy_kcal: 162 },
   meal_ref: null,
+  origin: "manual",
   ...over,
 });
 
@@ -40,6 +41,19 @@ describe("MealSection", () => {
     expect(within(section).getByText("—")).toBeInTheDocument();
     await userEvent.click(within(section).getByText("Hummus"));
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "e1" }));
+  });
+
+  it("marks entries logged from a food photo as AI estimates", () => {
+    const estimate = entry({
+      food_id: null,
+      name: "White rice (~180 g)",
+      grams: null,
+      serving_label: null,
+      serving_count: null,
+      origin: "ai_photo",
+    });
+    render(<MealSection label="Lunch" entries={[estimate]} onAdd={vi.fn()} onOpen={vi.fn()} />);
+    expect(screen.getByText("AI estimate")).toBeInTheDocument();
   });
 
   it("shows an empty meal and an add button", async () => {

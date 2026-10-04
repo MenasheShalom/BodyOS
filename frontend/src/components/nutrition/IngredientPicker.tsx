@@ -11,11 +11,16 @@ import { FoodName } from "./FoodName";
 export function IngredientPicker({
   onPick,
   onClose,
+  title = "Add ingredient",
+  initialQuery = "",
 }: {
   onPick: (food: Food & { id: string }) => void;
   onClose: () => void;
+  title?: string;
+  /** Pre-filled search, e.g. the food name an AI estimate suggests. */
+  initialQuery?: string;
 }) {
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQuery);
   const [error, setError] = useState<string | null>(null);
   const search = useCombinedFoodSearch(q);
   const importFood = useImportFood();
@@ -31,7 +36,7 @@ export function IngredientPicker({
   };
 
   return (
-    <Modal title="Add ingredient" onClose={onClose}>
+    <Modal title={title} onClose={onClose}>
       <div className="space-y-3">
         <form
           role="search"

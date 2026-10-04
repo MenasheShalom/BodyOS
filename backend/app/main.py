@@ -6,8 +6,11 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.ai.provider import AIError
+from app.ai.service import AIDisabled, AILimit, error_body
 from app.config import get_settings
 from app.routers import (
+    ai,
     body_entries,
     dashboard,
     favourites,
@@ -56,6 +59,13 @@ def create_app() -> FastAPI:
         expose_headers=["X-Request-ID"],
     )
 
+    @app.exception_handler(AIError)
+    @app.exception_handler(AIDisabled)
+    @app.exception_handler(AILimit)
+    async def ai_error_handler(request: Request, exc: Exception) -> JSONResponse:
+        status_code, body = error_body(exc)
+        return JSONResponse(status_code=status_code, content=body)
+
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
@@ -73,6 +83,7 @@ def create_app() -> FastAPI:
     app.include_router(favourites.router)
     app.include_router(recipes.router)
     app.include_router(saved_meals.router)
+    app.include_router(ai.router)
 
     return app
 

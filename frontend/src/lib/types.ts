@@ -160,7 +160,10 @@ export type FoodLogEntry = {
   serving_count: number | null;
   nutrients: Nutrients;
   meal_ref: string | null;
+  /** Logged by hand, from a food photo estimate, or from an AI meal plan. */
+  origin: LogOrigin;
 };
+export type LogOrigin = "manual" | "ai_photo" | "ai_plan";
 export type FoodLogInput = {
   food_id: string;
   grams: number;
@@ -313,3 +316,33 @@ export type FoodDaySummary = {
   entries: number;
   excluded: boolean;
 };
+
+export type AiFeature =
+  | "food_photo"
+  | "weekly_report"
+  | "body_fat"
+  | "meal_plan"
+  | "recipe_from_groceries";
+export type AiStatus = {
+  /** Set up on the server and switched on by the user. */
+  enabled: boolean;
+  configured: boolean;
+  provider: string | null;
+  model: string | null;
+  used_this_month: number;
+  limit: number;
+  resets_on: string;
+};
+export type AiSettings = { enabled: boolean; acknowledged: AiFeature[] };
+export type FoodPhotoItem = {
+  name: string;
+  grams: number;
+  /** Calories and macros for `grams`. */
+  nutrients: Nutrients;
+  confidence: "low" | "medium" | "high";
+  search_query: string;
+};
+export type FoodPhotoResult = { items: FoodPhotoItem[]; notes: string; dropped: number };
+export type BatchEntry =
+  | (FoodLogInput & { kind: "food"; origin?: LogOrigin })
+  | (QuickAddInput & { kind: "quick"; origin?: LogOrigin });

@@ -8,7 +8,8 @@ from app.db import Conn
 from app.nutrition_schemas import FoodDayOut, FoodLogOut, TargetsOut
 
 LOG_COLUMNS = (
-    "id, eaten_at, meal, food_id, name, grams, serving_label, serving_count, nutrients, meal_ref"
+    "id, eaten_at, meal, food_id, name, grams, serving_label, serving_count, nutrients, meal_ref,"
+    " origin"
 )
 TARGET_COLUMNS = (
     "effective_from, energy_kcal, protein_g, carbs_g, fat_g, fiber_g, origin, tdee_at_creation"

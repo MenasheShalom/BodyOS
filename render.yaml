@@ -4,7 +4,8 @@ services:
     runtime: python
     plan: free
     rootDir: backend
-    buildCommand: pip install .
+    # Both AI SDKs are installed so switching vendor is only an env var change.
+    buildCommand: pip install ".[ai-anthropic,ai-google]"
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
@@ -26,3 +27,11 @@ services:
         value: "BodyOS/0.2 (personal nutrition tracker)"
       - key: FOOD_SOURCES
         value: live
+      - key: AI_PROVIDER
+        value: none
+      - key: AI_MODEL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false

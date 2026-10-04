@@ -65,7 +65,8 @@ Free projects pause after about a week without activity; open the dashboard to r
 ### 2. Backend on Render
 1. New → Blueprint → select this repository (it uses `render.yaml`).
 2. Set the environment variables: `DATABASE_URL` (session pooler), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET` (leave empty if your project uses asymmetric JWT keys), `CORS_ORIGINS`, for example `["https://bodyos.vercel.app"]`, and `USDA_API_KEY` (free from https://fdc.nal.usda.gov/api-key-signup; `DEMO_KEY` works but is heavily rate-limited). `OFF_USER_AGENT` identifies the app to Open Food Facts; set it to include a contact email.
-3. The free instance sleeps after 15 minutes idle. The app pings `/health` when it opens and shows "Waking up server…" while the backend starts.
+3. AI features are off until you choose a provider (see [AI features](#ai-features)).
+4. The free instance sleeps after 15 minutes idle. The app pings `/health` when it opens and shows "Waking up server…" while the backend starts.
 
 ### 3. Frontend on Vercel (or Netlify / Cloudflare Pages)
 1. Import the repository with root directory `frontend` and the Vite framework preset.
@@ -93,3 +94,31 @@ Targets start from a standard estimate: BMR (Katch-McArdle when there's a recent
 - **Weekly check-in.** It suggests new targets from the estimate. They only change when you accept or edit them, and each check-in moves calories by at most 150 kcal. Suggestions never go below your BMR or 1,500 kcal (men) / 1,200 kcal (women). They never cut further while you're losing more than 1% of your body weight a week.
 
 Nutrient averages use only the logged foods that report each nutrient. A nutrient reported by under 60% of your food shows "Not enough data" rather than a falsely low number. Reference amounts are the US Dietary Reference Intakes for your sex and age.
+
+## AI features
+
+Logging food from a photo is the first AI feature. A weekly report, body-fat estimates from progress photos, and meal plans follow. The backend calls the AI through one small interface, so the vendor is a configuration choice:
+
+| `AI_PROVIDER` | Also set | Notes |
+|---|---|---|
+| `none` (default) | | Every AI feature is hidden. |
+| `anthropic` | `ANTHROPIC_API_KEY` | Claude. `AI_MODEL` is optional (defaults to `claude-opus-5-5`). |
+| `google` | `GOOGLE_API_KEY`, `AI_MODEL` | Gemini. `AI_MODEL` is required because Gemini model names change often: use a current model that accepts images and JSON-schema output (a Flash model is a good price/speed balance). |
+| `fake` | | Canned answers, for tests and end-to-end runs. |
+
+Optional settings:
+- `AI_EFFORT` (`low`/`medium`/`high`, default `medium`) trades answer quality against speed and cost.
+- `AI_MONTHLY_REQUEST_LIMIT` (default 300) caps requests per user per calendar month. Requests that fail because the provider is down don't count. Settings → AI shows the usage.
+
+To switch vendor, change the variables on Render and redeploy. The build installs both SDKs (`pip install ".[ai-anthropic,ai-google]"`), so nothing else changes. To check a setup before using it in the app, run one real request from `backend/`:
+
+```bash
+AI_PROVIDER=google GOOGLE_API_KEY=... AI_MODEL=... python scripts/ai_smoke.py meal.jpg
+```
+
+**Privacy:**
+- Nothing is sent to the AI unless you start it: you choose the photo, and the first use shows a notice naming the provider.
+- Food photos are resized in the browser (which also drops location metadata), sent to the provider, and never stored by BodyOS.
+- AI answers are drafts: nothing is logged until you review it and tap Log, and estimates are tagged "AI estimate" in the day view.
+- AI can be switched off per user in Settings.
+

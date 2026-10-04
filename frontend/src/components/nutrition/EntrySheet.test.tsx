@@ -23,6 +23,7 @@ const base: FoodLogEntry = {
   serving_count: 2,
   nutrients: { energy_kcal: 162 },
   meal_ref: null,
+  origin: "manual",
 };
 
 describe("EntrySheet", () => {

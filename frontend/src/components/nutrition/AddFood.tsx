@@ -4,6 +4,7 @@ import { ApiError } from "../../lib/api";
 import { useCombinedFoodSearch } from "../../lib/foodSearch";
 import { eatenAtFor } from "../../lib/meals";
 import {
+  useAiStatus,
   useBarcodeLookup,
   useFavourites,
   useImportFood,
@@ -14,6 +15,7 @@ import {
 } from "../../lib/queries";
 import { amountLabel } from "../../lib/serving";
 import type { Food, Meal, RecentFood, SavedMeal } from "../../lib/types";
+import { PhotoLog } from "../ai/PhotoLog";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { FoodDetail, type InitialAmount } from "./FoodDetail";
 import { FoodName } from "./FoodName";
@@ -60,7 +62,8 @@ function FoodRow({ food, detail, onPick }: { food: Food; detail?: string; onPick
 }
 
 export function AddFood({ day, meal, onDone, onCreateFood }: Props) {
-  const [tab, setTab] = useState<"search" | "quick">("search");
+  const [tab, setTab] = useState<"search" | "photo" | "quick">("search");
+  const ai = useAiStatus();
   const [q, setQ] = useState("");
   const [view, setView] = useState<View>({ kind: "browse" });
   const [error, setError] = useState<string | null>(null);
@@ -200,6 +203,7 @@ export function AddFood({ day, meal, onDone, onCreateFood }: Props) {
         {(
           [
             ["search", "Search"],
+            ...(ai.data?.enabled ? ([["photo", "Meal photo"]] as const) : []),
             ["quick", "Quick add"],
           ] as const
         ).map(([key, label]) => (
@@ -220,6 +224,8 @@ export function AddFood({ day, meal, onDone, onCreateFood }: Props) {
 
       {tab === "quick" ? (
         <QuickAddForm day={day} meal={meal} onDone={onDone} />
+      ) : tab === "photo" ? (
+        <PhotoLog day={day} meal={meal} onDone={onDone} onCancel={() => setTab("search")} />
       ) : (
         <>
           <div className="flex gap-2">

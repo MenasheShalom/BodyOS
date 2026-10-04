@@ -35,7 +35,9 @@ export function MealSection({ label, entries, onAdd, onOpen, onCopy, onSave }: P
               >
                 <span className="min-w-0">
                   <FoodName name={e.name} />
-                  <span className="block text-xs text-muted">{amountLabel(e) || "—"}</span>
+                  <span className="block text-xs text-muted">
+                    {e.origin === "ai_photo" ? "AI estimate" : amountLabel(e) || "—"}
+                  </span>
                 </span>
                 <span className="tabular shrink-0 text-sm">
                   {Math.round(e.nutrients.energy_kcal ?? 0).toLocaleString("en-GB")}
