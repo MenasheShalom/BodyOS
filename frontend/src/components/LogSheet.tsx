@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { MeasurementForm } from "../forms/MeasurementForm";
 import { PhotoForm } from "../forms/PhotoForm";
 import { WeighInForm } from "../forms/WeighInForm";
-import { defaultMeal, isoDay } from "../lib/meals";
+import { defaultMeal, isoDay, MEALS } from "../lib/meals";
 import { latestByPose, useUploadPhoto } from "../lib/photos";
 import { bodyEntries, measurements, usePhotos, useProfile } from "../lib/queries";
 import type { FoodTarget, LogTab } from "./AppLayout";
@@ -17,10 +17,14 @@ const TABS: { key: LogTab; label: string }[] = [
   { key: "photo", label: "Photo" },
 ];
 
+const mealLabel = (meal: string) => MEALS.find((m) => m.key === meal)?.label ?? meal;
+
 type Props = { initialTab: LogTab; food?: FoodTarget; onClose: () => void };
 
 export function LogSheet({ initialTab, food = {}, onClose }: Props) {
-  const [tab, setTab] = useState<LogTab>(initialTab);
+  // Opened from a meal's "Add": only food makes sense, so skip the tab bar.
+  const foodOnly = food.meal !== undefined;
+  const [tab, setTab] = useState<LogTab>(foodOnly ? "food" : initialTab);
   const navigate = useNavigate();
   const [foodTarget] = useState(() => ({
     day: food.day ?? isoDay(new Date()),
@@ -48,27 +52,34 @@ export function LogSheet({ initialTab, food = {}, onClose }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Log"
+        aria-label={foodOnly ? `Add to ${mealLabel(foodTarget.meal)}` : "Log"}
         onClick={(e) => e.stopPropagation()}
         className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-bg p-5 md:rounded-3xl"
       >
         <div className="mb-4 flex items-center justify-between">
-          <div role="tablist" className="flex gap-0.5 overflow-x-auto rounded-xl bg-surface-2 p-1">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.key}
-                onClick={() => setTab(t.key)}
-                className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm ${
-                  tab === t.key ? "bg-surface text-text shadow-sm" : "text-muted"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          {foodOnly ? (
+            <h2 className="text-lg font-medium">Add to {mealLabel(foodTarget.meal)}</h2>
+          ) : (
+            <div
+              role="tablist"
+              className="flex gap-0.5 overflow-x-auto rounded-xl bg-surface-2 p-1"
+            >
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm ${
+                    tab === t.key ? "bg-surface text-text shadow-sm" : "text-muted"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
           <button
             type="button"
             aria-label="Close"

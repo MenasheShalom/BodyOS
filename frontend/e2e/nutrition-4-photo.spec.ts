@@ -26,7 +26,7 @@ test("log a meal from a photo", async ({ page }) => {
   await signIn(page);
   await page.goto("/food");
   await page.getByRole("button", { name: "Add to Dinner" }).click();
-  const sheet = page.getByRole("dialog", { name: "Log", exact: true });
+  const sheet = page.getByRole("dialog", { name: "Add to Dinner" });
   await sheet.getByRole("tab", { name: "Meal photo" }).click();
 
   const notice = page.getByRole("dialog", { name: "Before you use AI" });
