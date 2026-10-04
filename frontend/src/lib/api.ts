@@ -3,12 +3,24 @@ import { env } from "./env";
 export class ApiError extends Error {
   readonly status: number;
   readonly fieldErrors: Record<string, string>;
+  /** Machine-readable reason some endpoints add, e.g. "ai_limit". */
+  readonly code: string | null;
+  /** Extra fields from the error body, e.g. `resets_on` for "ai_limit". */
+  readonly extra: Record<string, unknown>;
 
-  constructor(status: number, message: string, fieldErrors: Record<string, string> = {}) {
+  constructor(
+    status: number,
+    message: string,
+    fieldErrors: Record<string, string> = {},
+    code: string | null = null,
+    extra: Record<string, unknown> = {},
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.fieldErrors = fieldErrors;
+    this.code = code;
+    this.extra = extra;
   }
 }
 
@@ -56,7 +68,10 @@ function toApiError(status: number, data: unknown): ApiError {
     }
     return new ApiError(422, general ?? "Please fix the highlighted fields.", fieldErrors);
   }
-  if (typeof detail === "string") return new ApiError(status, detail);
+  if (typeof detail === "string") {
+    const { code, detail: _detail, ...extra } = data as { code?: unknown; detail: string };
+    return new ApiError(status, detail, {}, typeof code === "string" ? code : null, extra);
+  }
   return new ApiError(
     status,
     status >= 500 ? "Something went wrong. Please try again." : "Request failed.",

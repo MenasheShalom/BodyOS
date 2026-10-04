@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { AiSettingsSection } from "../components/ai/AiSettingsSection";
 import { ProfileForm } from "../forms/ProfileForm";
 import { useProfile, useSaveProfile } from "../lib/queries";
 import { supabase } from "../lib/supabase";
@@ -24,6 +25,7 @@ export function Settings() {
         }}
       />
       {saved && <p className="text-sm text-good">Saved.</p>}
+      <AiSettingsSection />
       <button
         type="button"
         onClick={() => void supabase.auth.signOut().then(() => qc.clear())}
