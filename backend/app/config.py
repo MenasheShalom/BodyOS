@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,6 +26,20 @@ class Settings(BaseSettings):
     ai_timeout_s: float = 60
     anthropic_api_key: str | None = None
     google_api_key: str | None = None
+
+    @field_validator("ai_provider", "ai_effort", mode="before")
+    @classmethod
+    def _lowercase(cls, value: object) -> object:
+        # Dashboards make "Google" or " anthropic" easy to type; accept them.
+        return value.strip().lower() if isinstance(value, str) else value
+
+    @field_validator("ai_model", "anthropic_api_key", "google_api_key", mode="before")
+    @classmethod
+    def _blank_is_unset(cls, value: object) -> object:
+        if isinstance(value, str):
+            value = value.strip()
+            return value or None
+        return value
 
 
 @lru_cache

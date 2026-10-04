@@ -44,7 +44,10 @@ class GoogleProvider:
         if client is None:
             if not api_key:
                 raise AIConfigError("GOOGLE_API_KEY is not set")
-            from google import genai
+            try:
+                from google import genai
+            except ImportError as e:
+                raise AIConfigError("The google-genai package isn't installed") from e
 
             client = genai.Client(api_key=api_key)
         self._client = client

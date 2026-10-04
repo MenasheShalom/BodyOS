@@ -24,7 +24,7 @@ vi.mock("./nutrition/AddFood", () => ({
 import { LogSheet } from "./LogSheet";
 
 describe("LogSheet", () => {
-  it("opens the Food tab on the requested day and meal", () => {
+  it("adding to a meal shows only food, without the tab bar", () => {
     render(
       <MemoryRouter>
         <LogSheet
@@ -34,9 +34,20 @@ describe("LogSheet", () => {
         />
       </MemoryRouter>,
     );
+    expect(screen.getByRole("dialog", { name: "Add to Dinner" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Add to Dinner" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+    expect(screen.getByText("add food to dinner on 2026-01-15")).toBeInTheDocument();
+  });
+
+  it("the main Log button still offers every kind of entry", () => {
+    render(
+      <MemoryRouter>
+        <LogSheet initialTab="weigh-in" onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
     const tabs = screen.getAllByRole("tab").map((t) => t.textContent);
     expect(tabs).toEqual(["Food", "Weigh-in", "Measurements", "Photo"]);
-    expect(screen.getByRole("tab", { name: "Food" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText("add food to dinner on 2026-01-15")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Weigh-in" })).toHaveAttribute("aria-selected", "true");
   });
 });

@@ -36,7 +36,10 @@ class AnthropicProvider:
         if client is None:
             if not api_key:
                 raise AIConfigError("ANTHROPIC_API_KEY is not set")
-            import anthropic
+            try:
+                import anthropic
+            except ImportError as e:
+                raise AIConfigError("The anthropic package isn't installed") from e
 
             client = anthropic.Anthropic(api_key=api_key, timeout=timeout_s, max_retries=1)
         self._client = client

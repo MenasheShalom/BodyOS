@@ -110,7 +110,7 @@ Optional settings:
 - `AI_EFFORT` (`low`/`medium`/`high`, default `medium`) trades answer quality against speed and cost.
 - `AI_MONTHLY_REQUEST_LIMIT` (default 300) caps requests per user per calendar month. Requests that fail because the provider is down don't count. Settings → AI shows the usage.
 
-To switch vendor, change the variables on Render and redeploy. The build installs both SDKs (`pip install ".[ai-anthropic,ai-google]"`), so nothing else changes. To check a setup before using it in the app, run one real request from `backend/`:
+To switch vendor, change the variables on Render and redeploy. Both vendor SDKs are regular dependencies, so nothing else changes. Values are case-insensitive (`Google` works). To check a setup before using it in the app, run one real request from `backend/`:
 
 ```bash
 AI_PROVIDER=google GOOGLE_API_KEY=... AI_MODEL=... python scripts/ai_smoke.py meal.jpg
