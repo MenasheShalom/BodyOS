@@ -6,6 +6,7 @@ import { App } from "./App";
 import { AuthProvider } from "./auth/AuthProvider";
 import "./index.css";
 import { ApiError, setTokenGetter, setUnauthorizedHandler } from "./lib/api";
+import { registerAppUpdates } from "./lib/pwa";
 import { handleUnauthorized } from "./lib/session";
 import { supabase } from "./lib/supabase";
 
@@ -21,6 +22,7 @@ const queryClient = new QueryClient({
 
 setTokenGetter(async () => (await supabase.auth.getSession()).data.session?.access_token ?? null);
 setUnauthorizedHandler(() => void handleUnauthorized());
+registerAppUpdates();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
