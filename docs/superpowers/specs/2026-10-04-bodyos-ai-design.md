@@ -135,7 +135,7 @@ It appears on Trends as the metric `ai_body_fat_pct` (source `ai`). The chart sh
 
 ### 5.1 Food photo logging (Phase 1)
 
-- **Entry point:** a **Photo** tab in the add-food sheet, next to Search, Barcode and Quick add. It opens the camera (`<input type=file accept=image/* capture=environment>`) and also accepts a gallery pick.
+- **Entry point:** a **Meal photo** tab in the add-food sheet, next to Search, Barcode and Quick add. It opens the camera (`<input type=file accept=image/* capture=environment>`) and also accepts a gallery pick.
 - **Hint:** an optional free-text field ("e.g. 'the rice was about a cup', 'cooked in olive oil'").
 - **`POST /ai/food-photo`** (multipart: the image plus `hint` and `meal`) returns `{items: [{name, grams, nutrients, confidence: low|medium|high, search_query}], notes}`.
   - Nutrients cover kcal, protein, carbs and fat per item (the quick-add set), and the existing quick-add plausibility rules apply.
@@ -286,7 +286,7 @@ Each phase is one PR, and each is usable on its own:
    - the `app/ai` layer with the three adapters
    - usage cap, settings, status
    - `food_log.origin` and batch logging
-   - the Photo tab
+   - the Meal photo tab
    - Settings → AI
 2. **Insight:** weekly report, and body-fat estimate from photos (with its Trends series).
 3. **Planning:** meal plans and recipes from groceries, `recipes.instructions`, and ingredient resolution.

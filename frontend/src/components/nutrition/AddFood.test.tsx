@@ -215,12 +215,12 @@ describe("AddFood", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Food database unavailable");
   });
 
-  it("offers a Photo tab only when AI is on", async () => {
+  it("offers a Meal photo tab only when AI is on", async () => {
     const { user } = setup();
-    expect(screen.queryByRole("tab", { name: "Photo" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Meal photo" })).not.toBeInTheDocument();
     aiStatus.mockReturnValue({ data: { enabled: true } });
     setup();
-    const photoTabs = screen.getAllByRole("tab", { name: "Photo" });
+    const photoTabs = screen.getAllByRole("tab", { name: "Meal photo" });
     await user.click(photoTabs[0]);
     expect(screen.getByText("photo logging")).toBeInTheDocument();
   });

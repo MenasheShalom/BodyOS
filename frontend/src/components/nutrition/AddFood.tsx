@@ -203,7 +203,7 @@ export function AddFood({ day, meal, onDone, onCreateFood }: Props) {
         {(
           [
             ["search", "Search"],
-            ...(ai.data?.enabled ? ([["photo", "Photo"]] as const) : []),
+            ...(ai.data?.enabled ? ([["photo", "Meal photo"]] as const) : []),
             ["quick", "Quick add"],
           ] as const
         ).map(([key, label]) => (
