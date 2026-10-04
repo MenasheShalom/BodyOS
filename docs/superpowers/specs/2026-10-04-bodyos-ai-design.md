@@ -138,7 +138,7 @@ It appears on Trends as the metric `ai_body_fat_pct` (source `ai`). The chart sh
 - **Entry point:** a **Photo** tab in the add-food sheet, next to Search, Barcode and Quick add. It opens the camera (`<input type=file accept=image/* capture=environment>`) and also accepts a gallery pick.
 - **Hint:** an optional free-text field ("e.g. 'the rice was about a cup', 'cooked in olive oil'").
 - **`POST /ai/food-photo`** (multipart: the image plus `hint` and `meal`) returns `{items: [{name, grams, nutrients, confidence: low|medium|high, search_query}], notes}`.
-  - Nutrients cover kcal, protein, carbs, fat and fibre per item, and the existing quick-add plausibility rules apply.
+  - Nutrients cover kcal, protein, carbs and fat per item (the quick-add set), and the existing quick-add plausibility rules apply.
   - `search_query` is a short English food name for the database.
 - **Review list:** each item has editable grams (nutrients rescale linearly), a remove button, and **"Find in database"**. That runs the normal food search for `search_query` and swaps the item for the real food at the same grams, giving full micros and a real snapshot.
 - **Log all** writes one entry per item in one request, `POST /food-log/batch`:
