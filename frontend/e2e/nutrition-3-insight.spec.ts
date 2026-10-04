@@ -74,7 +74,7 @@ async function signIn(page: Page) {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("link", { name: "Food" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Food", exact: true })).toBeVisible();
 }
 
 test("accept the weekly check-in and see the measured burn", async ({ page }) => {

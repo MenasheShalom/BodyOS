@@ -15,7 +15,7 @@ async function signIn(page: Page) {
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Password").fill(user.password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("link", { name: "Food" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Food", exact: true })).toBeVisible();
 }
 
 const meal = (page: Page, name: string) => page.getByRole("region", { name });
@@ -23,7 +23,7 @@ const summary = (page: Page) => page.getByRole("region", { name: "Daily summary"
 
 test("set up targets, then log from search and quick add", async ({ page }) => {
   await signIn(page);
-  await page.getByRole("link", { name: "Food" }).click();
+  await page.getByRole("link", { name: "Food", exact: true }).click();
   await page.getByRole("link", { name: /Set up nutrition targets/ }).click();
   await page.getByRole("button", { name: "Next" }).click();
   await expect(page.getByText(/Resting burn \(BMR\)/)).toBeVisible();
