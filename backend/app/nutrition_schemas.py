@@ -123,6 +123,25 @@ class QuickAddIn(BaseModel):
         return self
 
 
+Origin = Literal["manual", "ai_photo", "ai_plan"]
+
+
+class BatchFoodIn(FoodLogIn):
+    kind: Literal["food"]
+    origin: Origin = "manual"
+
+
+class BatchQuickIn(QuickAddIn):
+    kind: Literal["quick"]
+    origin: Origin = "manual"
+
+
+class BatchLogIn(BaseModel):
+    entries: list[Annotated[BatchFoodIn | BatchQuickIn, Field(discriminator="kind")]] = Field(
+        min_length=1, max_length=20
+    )
+
+
 class FoodLogPatch(BaseModel):
     grams: float | None = Field(default=None, ge=0.1, le=5000)
     serving_label: Annotated[str, StringConstraints(max_length=100)] | None = None
@@ -153,6 +172,7 @@ class FoodLogOut(BaseModel):
     serving_count: float | None
     nutrients: dict[str, float]
     meal_ref: UUID | None
+    origin: Origin = "manual"
 
     @field_validator("nutrients")
     @classmethod

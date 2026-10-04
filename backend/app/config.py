@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     off_user_agent: str = "BodyOS/0.2 (personal nutrition tracker)"
     # "fake" serves built-in demo foods instead of calling OFF/USDA (end-to-end tests)
     food_sources: Literal["live", "fake"] = "live"
+    # AI (sub-project 3). "none" switches every AI feature off.
+    ai_provider: Literal["none", "anthropic", "google", "fake"] = "none"
+    ai_model: str | None = None  # required for google; overrides the anthropic default
+    ai_effort: Literal["low", "medium", "high"] = "medium"
+    ai_monthly_request_limit: int = 300
+    ai_timeout_s: float = 60
+    anthropic_api_key: str | None = None
+    google_api_key: str | None = None
 
 
 @lru_cache
