@@ -4,15 +4,19 @@ import type {
   BodyEntry,
   CopyInput,
   Meal,
+  Micros,
   RecentFood,
   Recipe,
   RecipeInput,
   SavedMeal,
+  Suggestion,
+  Tdee,
   CustomFoodInput,
   Estimate,
   EstimateParams,
   Food,
   FoodDay,
+  FoodDaySummary,
   FoodLogEntry,
   FoodLogInput,
   FoodLogPatch,
@@ -54,6 +58,10 @@ export const qk = {
   recentFoods: ["recent-foods"] as const,
   recipes: ["recipes"] as const,
   savedMeals: ["saved-meals"] as const,
+  tdee: ["nutrition-tdee"] as const,
+  suggestion: ["nutrition-suggestion"] as const,
+  micros: (window: number) => ["nutrition-micros", window] as const,
+  foodDays: (from: string, to: string) => ["food-days", from, to] as const,
   estimate: (p: EstimateParams) =>
     ["nutrition-estimate", p.mode, p.activity_level, p.deficit_pct, p.protein_g_per_kg] as const,
 };
@@ -61,6 +69,10 @@ export const qk = {
 export function invalidateNutrition(qc: QueryClient): void {
   void qc.invalidateQueries({ queryKey: ["food-day"] });
   void qc.invalidateQueries({ queryKey: qk.recentFoods });
+  // Logging changes the burn estimate, the check-in, averages and the nutrition charts.
+  for (const key of [qk.tdee, qk.suggestion, ["nutrition-micros"], ["food-days"], ["series"]]) {
+    void qc.invalidateQueries({ queryKey: key });
+  }
   void qc.invalidateQueries({ queryKey: qk.dashboard });
 }
 
@@ -394,3 +406,51 @@ export const useLogSavedMeal = () =>
   useLogMutation(({ id, meal, eaten_at }: { id: string; meal: Meal; eaten_at: string }) =>
     api<FoodLogEntry[]>(`/saved-meals/${id}/log`, { method: "POST", json: { meal, eaten_at } }),
   );
+
+// --- Nutrition phase 3: TDEE, check-in, micronutrients, day flags --------------------------
+
+export function useTdee(enabled = true) {
+  return useQuery({
+    queryKey: qk.tdee,
+    queryFn: () => api<Tdee>("/nutrition/tdee"),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useSuggestion() {
+  return useQuery({
+    queryKey: qk.suggestion,
+    queryFn: () => api<Suggestion | null>("/nutrition/suggestion"),
+  });
+}
+
+export function useDismissSuggestion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<void>("/nutrition/suggestion/dismiss", { method: "POST" }),
+    onSuccess: () => {
+      qc.setQueryData(qk.suggestion, null);
+      void qc.invalidateQueries({ queryKey: qk.dashboard });
+    },
+  });
+}
+
+export function useMicros(window: 7 | 28) {
+  return useQuery({
+    queryKey: qk.micros(window),
+    queryFn: () => api<Micros>(`/nutrition/micros?window=${window}`),
+  });
+}
+
+export const useFlagDay = () =>
+  useLogMutation(({ day, excluded }: { day: string; excluded: boolean }) =>
+    api<void>(`/food-log/days/${day}/flag`, { method: "PUT", json: { excluded } }),
+  );
+
+export function useFoodDays(from: string, to: string) {
+  return useQuery({
+    queryKey: qk.foodDays(from, to),
+    queryFn: () => api<FoodDaySummary[]>(`/food-log/days?from=${from}&to=${to}`),
+  });
+}

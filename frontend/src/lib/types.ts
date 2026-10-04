@@ -92,7 +92,13 @@ export type Dashboard = {
   cards: MetricSummary[];
   secondary: MetricSummary[];
   goals: Goal[];
-  nudges: { days_since_weigh_in: number | null; days_since_photo: number | null };
+  nudges: {
+    days_since_weigh_in: number | null;
+    days_since_photo: number | null;
+    no_food_today?: boolean;
+  };
+  food_today?: FoodToday | null;
+  check_in?: Suggestion | null;
 };
 
 export type NutrientKey =
@@ -189,6 +195,8 @@ export type FoodDay = {
   totals: Nutrients;
   coverage: Record<NutrientKey, number>;
   target: Targets | null;
+  /** Flagged incomplete: left out of the TDEE and averages. */
+  excluded: boolean;
 };
 
 export type NutritionMode = "recomp" | "cut" | "maintain" | "lean_bulk";
@@ -255,3 +263,53 @@ export type SavedMealItem = {
   nutrients: Nutrients;
 };
 export type SavedMeal = { id: string; name: string; items: SavedMealItem[]; totals: Nutrients };
+
+export type FoodToday = {
+  energy_kcal: number;
+  protein_g: number;
+  target_kcal: number | null;
+  target_protein_g: number | null;
+  entries: number;
+};
+export type TdeeWeek = {
+  day: string;
+  observed: number | null;
+  tdee: number;
+  intake: number | null;
+};
+export type Tdee = {
+  tdee: number;
+  confidence: number | null;
+  /** False while the estimate is still the BMR × activity starting guess. */
+  has_data: boolean;
+  eligible_days: number;
+  start_tdee: number;
+  check_in_weekday: number;
+  weekly: TdeeWeek[];
+};
+export type Suggestion = {
+  week_start: string;
+  tdee: number;
+  confidence: number | null;
+  targets: MacroTargets;
+  current: MacroTargets | null;
+  capped: boolean;
+  warning: string | null;
+};
+export type MicroStatus = "low" | "ok" | "over_limit" | "not_enough_data" | "no_reference";
+export type Micro = {
+  key: NutrientKey;
+  average: number | null;
+  reference: number | null;
+  kind: "target" | "limit" | null;
+  coverage: number;
+  status: MicroStatus;
+};
+export type Micros = { window: 7 | 28; days_counted: number; nutrients: Micro[] };
+export type FoodDaySummary = {
+  day: string;
+  energy_kcal: number;
+  protein_g: number;
+  entries: number;
+  excluded: boolean;
+};

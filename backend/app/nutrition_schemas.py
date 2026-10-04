@@ -180,6 +180,7 @@ class FoodDayOut(BaseModel):
     totals: dict[str, float]
     coverage: dict[str, float]
     target: TargetsOut | None
+    excluded: bool = False  # flagged incomplete: left out of the TDEE and averages
 
 
 Mode = Literal["recomp", "cut", "maintain", "lean_bulk"]
@@ -335,3 +336,60 @@ class SavedMealOut(BaseModel):
     name: str
     items: list[SavedMealItemOut]
     totals: dict[str, float]
+
+
+class TdeeWeekOut(BaseModel):
+    day: date
+    observed: float | None  # this week's energy-balance reading, if there was enough data
+    tdee: float  # the smoothed estimate after this check-in
+    intake: float | None  # average calories over the week's eligible days
+
+
+class TdeeOut(BaseModel):
+    tdee: int
+    confidence: int | None
+    has_data: bool  # False while still using the starting estimate
+    eligible_days: int  # in the last 28 days
+    start_tdee: int
+    check_in_weekday: int
+    weekly: list[TdeeWeekOut]
+
+
+class SuggestionOut(BaseModel):
+    week_start: date
+    tdee: int
+    confidence: int | None
+    targets: MacroTargets
+    current: MacroTargets | None
+    capped: bool
+    warning: str | None
+
+
+class DayFlagIn(BaseModel):
+    excluded: bool
+
+
+class FoodDaySummaryOut(BaseModel):
+    day: date
+    energy_kcal: float
+    protein_g: float
+    entries: int
+    excluded: bool
+
+
+MicroStatus = Literal["low", "ok", "over_limit", "not_enough_data", "no_reference"]
+
+
+class MicroOut(BaseModel):
+    key: str
+    average: float | None  # per counted day, from the entries that report it
+    reference: float | None
+    kind: Literal["target", "limit"] | None
+    coverage: float  # share of calories from entries that report this nutrient
+    status: MicroStatus
+
+
+class MicrosOut(BaseModel):
+    window: int
+    days_counted: int
+    nutrients: list[MicroOut]

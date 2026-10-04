@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { ErrorState, Spinner } from "../components/EmptyState";
 import { Field } from "../components/Field";
 import { Modal } from "../components/Modal";
+import { TdeeBlock } from "../components/nutrition/TdeeBlock";
 import { TargetsForm } from "../forms/TargetsForm";
 import { ApiError } from "../lib/api";
 import { formatDay } from "../lib/format";
@@ -113,7 +114,7 @@ function SettingsForm({ settings }: { settings: NutritionSettings }) {
           ))}
         </select>
         <span className="mt-1 block text-xs text-muted">
-          Weekly target check-ins arrive in a later update.
+          Your burn estimate updates and new targets are suggested on this day.
         </span>
       </label>
       <label className="block text-sm">
@@ -209,6 +210,8 @@ export function Targets() {
           </ul>
         </div>
       )}
+
+      <TdeeBlock />
 
       <SettingsForm settings={settings.data} />
 

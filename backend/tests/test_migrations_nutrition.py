@@ -247,3 +247,32 @@ def test_deleting_recipe_removes_its_food(db, make_user) -> None:
         )
         conn.execute("delete from recipes where id = %s", (recipe_id,))
         assert conn.execute("select count(*) from foods").fetchone() == (0,)
+
+
+# --- Phase 3: day flags and dismissed check-ins -------------------------------------------
+
+
+def test_day_flags_one_per_day_and_private(db, make_user) -> None:
+    a, b = make_user(), make_user()
+    with psycopg.connect(db) as conn:
+        conn.execute(
+            "insert into nutrition_day_flags (user_id, day) values (%s, '2026-10-01')", (a,)
+        )
+        with pytest.raises(psycopg.errors.UniqueViolation):
+            conn.execute(
+                "insert into nutrition_day_flags (user_id, day) values (%s, '2026-10-01')", (a,)
+            )
+    with psycopg.connect(db) as conn:
+        _as_user(conn, b)
+        assert conn.execute("select * from nutrition_day_flags").fetchall() == []
+
+
+def test_dismissals_private(db, make_user) -> None:
+    a, b = make_user(), make_user()
+    with psycopg.connect(db) as conn:
+        conn.execute(
+            "insert into target_suggestion_dismissals (user_id, week_start) values (%s, '2026-09-27')",
+            (a,),
+        )
+        _as_user(conn, b)
+        assert conn.execute("select * from target_suggestion_dismissals").fetchall() == []

@@ -6,6 +6,7 @@ from zoneinfo import available_timezones
 from pydantic import AwareDatetime, BaseModel, Field, field_validator, model_validator
 
 from app.calculations.goals import ProjectionState
+from app.nutrition_schemas import SuggestionOut
 
 if TYPE_CHECKING:
     from app.services.series_service import SeriesResult
@@ -276,6 +277,15 @@ class MetricSummaryOut(BaseModel):
 class NudgesOut(BaseModel):
     days_since_weigh_in: int | None
     days_since_photo: int | None
+    no_food_today: bool = False  # after 14:00 local time with nothing logged
+
+
+class FoodTodayOut(BaseModel):
+    energy_kcal: float
+    protein_g: float
+    target_kcal: int | None
+    target_protein_g: int | None
+    entries: int
 
 
 class DashboardOut(BaseModel):
@@ -284,3 +294,5 @@ class DashboardOut(BaseModel):
     secondary: list[MetricSummaryOut]
     goals: list[GoalOut]
     nudges: NudgesOut
+    food_today: FoodTodayOut | None = None
+    check_in: SuggestionOut | None = None

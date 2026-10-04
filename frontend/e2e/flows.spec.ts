@@ -44,7 +44,7 @@ test("onboard, log weigh-ins and see them on Home and Trends", async ({ page }) 
   await expect(page.getByText("Fat mass")).toBeVisible();
   await expect(page.getByText("15.7", { exact: true })).toBeVisible(); // 82.4 kg × 19%
 
-  await page.getByRole("button", { name: "Log" }).click();
+  await page.getByRole("button", { name: "Log", exact: true }).click();
   await page.getByLabel("Weight").fill("82,0");
   await page.getByRole("button", { name: /More fields/ }).click();
   await page.getByLabel("Body fat").fill("18.8");
@@ -74,7 +74,7 @@ test("onboard, log weigh-ins and see them on Home and Trends", async ({ page }) 
 test("upload progress photos and compare them", async ({ page }) => {
   await signIn(page);
   for (const daysAgo of [10, 1]) {
-    await page.getByRole("button", { name: "Log" }).click();
+    await page.getByRole("button", { name: "Log", exact: true }).click();
     await page.getByRole("tab", { name: "Photo" }).click();
     await page
       .getByLabel("Choose from gallery")

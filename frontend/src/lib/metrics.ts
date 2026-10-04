@@ -39,7 +39,7 @@ export const TAPE_FIELDS: (FieldSpec & { key: TapeField })[] = [
   { key: "thigh_cm", label: "Thigh", unit: "cm", min: 10, max: 250, step: 0.1 },
 ];
 
-type Group = "Composition" | "Scale" | "Tape";
+type Group = "Composition" | "Scale" | "Tape" | "Nutrition";
 export const SERIES_METRICS: { key: string; label: string; unit: string; group: Group }[] = [
   { key: "fat_mass_kg", label: "Fat mass", unit: "kg", group: "Composition" },
   { key: "lean_mass_kg", label: "Lean mass", unit: "kg", group: "Composition" },
@@ -55,7 +55,23 @@ export const SERIES_METRICS: { key: string; label: string; unit: string; group: 
     group: "Scale" as const,
   })),
   ...TAPE_FIELDS.map((f) => ({ key: f.key, label: f.label, unit: f.unit, group: "Tape" as const })),
+  { key: "energy_kcal", label: "Calories", unit: "kcal", group: "Nutrition" },
+  { key: "protein_g", label: "Protein", unit: "g", group: "Nutrition" },
+  { key: "carbs_g", label: "Carbs", unit: "g", group: "Nutrition" },
+  { key: "fat_g", label: "Fat", unit: "g", group: "Nutrition" },
+  { key: "fiber_g", label: "Fibre", unit: "g", group: "Nutrition" },
+  { key: "tdee_kcal", label: "Burn (TDEE)", unit: "kcal", group: "Nutrition" },
 ];
+
+/** How a series' trend line is made, for its legend and line shape (backend app/metrics.py). */
+export function trendKind(metric: string): "ewma" | "rolling7" | "step" {
+  if (metric === "tdee_kcal") return "step";
+  return ["energy_kcal", "protein_g", "carbs_g", "fat_g", "fiber_g"].includes(metric)
+    ? "rolling7"
+    : "ewma";
+}
+
+export const TREND_LABEL = { ewma: "Trend", rolling7: "7-day average", step: "Weekly estimate" };
 
 export const GOAL_METRICS: { key: GoalMetric; label: string; unit: string }[] = [
   { key: "body_fat_pct", label: "Body fat", unit: "%" },

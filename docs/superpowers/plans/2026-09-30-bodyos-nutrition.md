@@ -1106,14 +1106,150 @@ Tests:
 - **Pages:** `/nutrition/recipes`, `/nutrition/recipes/new`, `/nutrition/recipes/:id` (builder with ingredient picker, grams, live per-serving totals and incomplete markers) and `/nutrition/meals` (list, view, delete). The Nutrition hub links to both.
 - **E2E (`nutrition-2-speed.spec.ts`):** log to yesterday then copy yesterday's breakfast to today, build a recipe and log one serving, manual barcode entry of the demo hummus.
 
-## Phase 3 — Insight (outline, expand before starting)
+## Phase 3 — Insight
 
-| # | Task | Key points |
-|---|---|---|
-| 22 | Migration `…_nutrition_insight.sql` | `nutrition_day_flags`, `target_suggestion_dismissals`. RLS. |
-| 23 | Adaptive TDEE calculation | Pure `adaptive_tdee(daily_kcal, excluded_days, weight_trend, targets_by_day, prior, today)` → weekly sequence, current estimate, confidence, eligible-day count (spec §6.3). **Synthetic test:** simulate 10 weeks with a true TDEE of 2,500, noisy intake ±300, weight drift from the energy balance plus ±0.6 kg water noise, and assert the estimate lands within ±50 kcal by week 6. Plus tests for excluded days, half-logged days, insufficient data, and damping of a water spike. |
-| 24 | Suggestion + check-in | `suggest_targets(current_target, tdee, settings, weight_trend_rate, bmr, sex)`: `targets_from_tdee`, the ±150 kcal cap per check-in, the > 1%/week loss guard, and the "meaningfully different" rule. `GET /nutrition/tdee`, `GET /nutrition/suggestion` (only on/after `check_in_weekday` in the current week and not dismissed), `POST /nutrition/suggestion/dismiss`, `PUT /food-log/days/{day}/flag`. |
-| 25 | Micronutrients | A DRI table by sex × age band (with a source comment). `GET /nutrition/micros?window=7|28` returns the daily average over logged days, the reference, and coverage. |
-| 26 | Series + dashboard | `METRICS` gains a `"nutrition"` source: `energy_kcal`, `protein_g`, `carbs_g`, `fat_g`, `fiber_g` (daily totals, with the "trend" as a 7-day mean) and `tdee_kcal` (derived). Overlay presets. `/dashboard` gains `food_today` and `check_in`. |
-| 27 | Insight UI | Check-in card (Home + Food; accept / edit / dismiss), TDEE block on Targets (the estimate, the ± band, "9 of 14 logged days"), the day-menu "Mark day incomplete", the Nutrients tab (bars vs reference, greyed below 60% coverage, sodium/sat-fat styled as "stay under"), the Trends metrics and overlay presets, the Home "Today's food" card and the after-14:00 nudge, and a History "Food" tab. Follow the dataviz skill. |
-| 28 | E2E + docs | Seed 3 weeks of logs and weigh-ins through the API → the check-in card appears on Sunday (inject the clock in e2e via a backend `FIXED_NOW` test flag) → accept → the targets update. The micros tab shows the coverage greying. |
+Goal (spec §1 success criteria): after about 3 weeks of reasonably complete logging, the app shows an adaptive TDEE (total daily energy expenditure) and suggests calorie and macro targets once a week, and targets change only when the user accepts. The weekly micronutrient view flags real gaps without treating missing data as zero. Nutrition joins Trends, Home and History.
+
+### Decisions made while expanding Phase 3
+
+- **The TDEE updates weekly, on the check-in day.**
+  - The estimate is a sequence of weekly values, each computed at a check-in day (Sunday by default) from the 28 days ending there.
+  - "Current TDEE" is the latest value, so the number the user sees is the one the suggestion uses. It doesn't change from day to day with water weight.
+  - Changing the check-in day recomputes the whole sequence; nothing is stored (spec §6.3).
+- **Eligible days** (spec §6.3 step 1):
+  - at least one entry
+  - not flagged incomplete
+  - kcal ≥ 50% of the target in force that day, or of the initial estimate when no target existed yet.
+  - The same rule picks which days count in micronutrient averages and nutrition series, so a half-logged day never drags an average down anywhere.
+- **The weight change is a least-squares slope over the window**, needing ≥ 8 weigh-ins spanning ≥ 14 days. It is fitted to the EWMA weight trend (α 0.1, from sub-project 1) once the trend has ≥ 14 days of history before the window, and to the daily weights before that.
+  *(Changed while building, after simulations over 60 runs:)*
+  - Taking the trend at the two window edges let one noisy reading swing the estimate by about 300 kcal.
+  - The trend alone lags a steady loss in the first weeks: a user losing 0.35 kg a week read about 120 kcal low, right when the first suggestions appear.
+  - The hybrid keeps the trend's accuracy once settled (median error 21 kcal at week 8) and halves the early error (median 73 kcal at week 4, against 130).
+- **Smoothing step:** `0.7 × eligible days/28` per check-in, raised from the spec's 0.5, which took about 9 weeks to close a 400 kcal starting error.
+- **A suggestion is owed when** all of these hold:
+  - the most recent check-in day ≤ today
+  - the TDEE has real data, not just the initial guess
+  - it wasn't dismissed for that check-in week
+  - it differs meaningfully from the targets in force (|Δkcal| ≥ 50 or |Δprotein| ≥ 5 g).
+
+  Accepting writes new targets (origin `suggested`, effective today). The suggestion then equals the targets, so the card disappears without any extra state.
+- **Safety rails** (spec §6.4) apply to the kcal before the macros are worked out:
+  - at most ±150 kcal per check-in
+  - the floor of max(BMR, 1,500 kcal male / 1,200 female)
+  - if the weight trend is falling more than 1% of body weight a week, kcal can't go below the current target, and a warning is shown.
+
+  `targets_from_tdee` is split into `kcal_target()` and `macros_for(kcal)` so the cap sits between them.
+- **Micronutrient references** are a fixed table by sex and age band (US Dietary Reference Intakes):
+  - Sodium (2,300 mg) and saturated fat (10% of average kcal) are upper limits ("stay under").
+  - Fibre's reference is the fibre target.
+  - Sugar has no reference and shows the amount only.
+  - Calories, protein, carbs and fat stay on the day summary and aren't repeated here.
+- **Nutrition in Trends:**
+  - **Metrics:** `energy_kcal`, `protein_g`, `carbs_g`, `fat_g` and `fiber_g` give a point per eligible day, with a **7-day rolling mean** as the trend (not EWMA, since intake isn't a noisy measurement of a slowly moving quantity). Weekly rate is not shown.
+  - **`tdee_kcal`:** the weekly sequence, drawn as steps.
+  - **Comparisons** stay as stacked panels, the existing pattern with no second y-axis. The one same-unit pair, intake vs expenditure, gets its own single-axis chart on the Targets page instead.
+- **E2E without clock tricks:** the e2e sets `check_in_weekday` to today's weekday and seeds 21 days of logs and weigh-ins through the API with past timestamps, so the check-in card appears for real. No `FIXED_NOW` flag.
+
+### Task 22: Migration `20261003000001_nutrition_insight.sql`
+
+New tables:
+- `nutrition_day_flags (user_id, day, excluded boolean not null default true, created_at, updated_at, primary key (user_id, day))`
+- `target_suggestion_dismissals (user_id, week_start date, created_at, primary key (user_id, week_start))`
+
+Both get RLS own-rows; `nutrition_day_flags` also gets the `updated_at` trigger. Tests: isolation for both, and one row per day/week.
+
+### Task 23: Adaptive TDEE calculation (pure)
+
+`app/calculations/tdee.py`:
+- `eligible_days(day_kcal: dict[date, float], excluded: set[date], target_on: Callable[[date], float]) -> dict[date, float]`
+- `check_in_days(first: date, today: date, weekday: int) -> list[date]`
+- `observe(window_end, day_kcal, weight_trend: list[Point]) -> Observation | None`: 28-day window, ≥ 14 eligible days, ≥ 8 weigh-ins in the window, otherwise `None`.
+- `adaptive_tdee(...) -> TdeeResult(weekly: list[WeekEstimate(day, observed, smoothed, eligible_days)], current, confidence, has_data, eligible_days_now)`
+  - smoothing `w = 0.5 × eligible/28`, seeded with the initial TDEE (spec §6.2)
+  - confidence = standard deviation of the last 4 observations (`None` below 4)
+
+Tests:
+- **Synthetic runs:** 20 seeded runs of 10 weeks at a true TDEE of 2,500 kcal, intake 2,200 ± 300, the weight drifting by energy balance (7,700 kcal/kg) plus ±0.6 kg water noise, and the starting guess deliberately off at 2,100. At week 8 the median error must be ≤ 50 kcal and every run within ±150; the median at week 6 ≤ 75. A run weighing every other day must also stay close. *(The plan's single-run "±50 kcal by week 6" was replaced with thresholds measured across many runs.)*
+- Excluded days and half-logged days are ignored.
+- Fewer than 14 eligible days → `has_data False`, and the current value equals the seed.
+- A 2 kg one-day water spike moves the smoothed value by < 75 kcal.
+- A missing weigh-in at a window edge → no observation.
+
+### Task 24: Suggestion, check-in and day flags (API)
+
+- **Pure function:** `suggest_targets(current: Targets | None, tdee, settings, weight_trend_kg, weekly_rate_kg, bmr, sex) -> Suggestion(targets, capped: bool, warning: str | None)`, with the rails above.
+- **`GET /nutrition/tdee`:** the current value, confidence, `has_data`, eligible days in the last 28, and the weekly sequence (for the chart and Trends).
+- **`GET /nutrition/suggestion`:** `{week_start, tdee, targets, current, capped, warning}`, or `null` when nothing is owed.
+- **`POST /nutrition/suggestion/dismiss`** (current week): 204, idempotent.
+- **`PUT /food-log/days/{day}/flag {excluded}`**, plus `excluded: bool` added to `FoodDayOut`.
+- **`GET /food-log/days?from=&to=`** (at most 92 days): `[{day, energy_kcal, protein_g, entries, excluded}]` for the History Food tab.
+
+Tests:
+- every rail (±150 cap both ways, floor, the >1%/week guard and its warning)
+- the "meaningfully different" threshold
+- dismissed weeks
+- accepting removes the card
+- before the check-in day in a fresh week → the previous week's suggestion is still shown unless dismissed or accepted
+- flags change eligibility and the TDEE
+- isolation
+
+### Task 25: Micronutrients
+
+- `app/nutrient_reference.py`: the DRI table (source cited in a comment), plus `reference(sex, age, key, avg_kcal, fibre_target) -> (value, kind: "target" | "limit") | None`.
+- **`GET /nutrition/micros?window=7|28`:**
+  - `{days_counted, nutrients: [{key, average, reference, kind, coverage, status}]}`
+  - `status` is one of `low`, `ok`, `over_limit`, `not_enough_data` (coverage < 0.6)
+  - averages are over eligible days in the window; coverage is weighted by kcal across them
+
+Tests:
+- reference values by sex and age band
+- the limit kinds
+- coverage gating
+- excluded days ignored
+- no data → `days_counted 0`
+
+### Task 26: Series and dashboard
+
+- **Metrics registry:** gains `source: "nutrition"` and a `trend: "ewma" | "rolling7" | "step"` field. Nutrition metrics come from eligible-day totals; `tdee_kcal` from `adaptive_tdee`. `/series` handles both, and `weekly_rate` is `None` for nutrition.
+- **`/dashboard` gains:**
+  - `food_today {energy_kcal, protein_g, target_kcal, target_protein_g, entries}`
+  - `check_in` (the suggestion summary, or `null`)
+  - `nudges.no_food_today` (true after 14:00 local time with no entries)
+
+Tests: series values and rolling mean, the step series, and the dashboard fields.
+
+### Task 27: Insight UI
+
+- **Check-in card** on Home (above the stats) and Food (above the summary):
+  - "Your burn is about 2,540 kcal (±120). Suggested: 2,290 kcal · P 170 · C 245 · F 65"
+  - **Accept**, **Edit** (prefilled `TargetsForm`, saved as manual) and **Not this week**
+  - shows the warning or "Capped at 150 kcal this week" when it applies
+- **Targets page:**
+  - TDEE block with the estimate, the ± band and "Based on 19 logged days" / "9 of 14 days logged so far". Before there is data: "Using your starting estimate".
+  - **Intake vs burn chart:** weekly average intake vs weekly TDEE on one axis, built per the dataviz skill.
+  - The check-in day note from Phase 1 is removed.
+- **Food page:**
+  - tabs **Day · Nutrients**
+  - the day menu gets **Mark day incomplete / complete**, with a badge on flagged days
+  - Nutrients tab: 7/28-day toggle and a bar per nutrient against its reference; limits read "stay under"; low coverage is greyed out and labelled "not enough data", never "low"; "Averaged over N logged days"
+- **Trends:** a new "Nutrition" metric group (Calories, Protein, Carbs, Fat, Fibre, Burn), with the rolling-mean line labelled "7-day average".
+- **Home:**
+  - a "Today's food" card (kcal and protein against targets) linking to Food
+  - the after-14:00 "No food logged today" nudge opens the log sheet on Food
+- **History:** a third tab, Food: the last 30 days with totals and incomplete flags; tapping a day opens `/food?day=`.
+
+Tests for every component: card actions, the coverage greying, flag toggles, Trends groups, the Home card and nudge, and History rows.
+
+### Task 28: E2E, docs and release
+
+**`nutrition-3-insight.spec.ts`:**
+- Seed 21 days through the API: weigh-ins every other day drifting −0.05 kg/day, and intake of about 2,100 kcal a day as quick adds.
+- Set `check_in_weekday` to today's weekday.
+- The check-in card appears → **Accept** → Targets shows the new targets and the TDEE block shows real data.
+- Flag a day incomplete and see the badge.
+- The Nutrients tab shows the "not enough data" state for vitamin D, since quick adds report only macros.
+
+Also: the README gains a short section on how the TDEE works; the Phase 3 migration is applied to Supabase before merging (as with Phases 1 and 2); then the PR.
+
+*Importing the Israeli Ministry of Health food database (Tzameret) was considered and declined (2026-10-03).*

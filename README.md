@@ -79,3 +79,17 @@ Food search and barcode lookups go through the backend to [Open Food Facts](http
 Open Food Facts data is available under the [Open Database License](https://opendatacommons.org/licenses/odbl/1-0/); the app credits it and links to the product on every food it shows. USDA data is public domain.
 
 The test fixtures in `backend/tests/fixtures/food_sources/` can be refreshed from the live APIs with `python backend/scripts/record_food_fixtures.py`.
+
+## How the burn estimate (adaptive TDEE) works
+
+Targets start from a standard estimate: BMR (Katch-McArdle when there's a recent body-fat reading, otherwise Mifflin-St Jeor) × an activity factor. Once there's enough history, the app measures your burn instead, from energy balance:
+
+> burn = average daily intake − weight change per day × 7,700 kcal/kg
+
+- Once a week, on your check-in day, it looks at the 28 days before. It needs at least 14 counted food days and 8 weigh-ins spread over 2 weeks or more.
+- **Which days count.** A day isn't counted if it's marked incomplete or holds less than half of that day's calorie target. Half-logged days would otherwise read as eating less.
+- **Weight change** is a least-squares slope through the window, so one day of water weight doesn't decide it. Once the weight trend has 2 weeks of history before the window, the slope is fitted to the trend instead of the raw weigh-ins.
+- **Smoothing.** Each weekly reading moves the estimate up to 70% of the way from its previous value, less when fewer days were logged. The ± figure is the spread of the last 4 readings.
+- **Weekly check-in.** It suggests new targets from the estimate. They only change when you accept or edit them, and each check-in moves calories by at most 150 kcal. Suggestions never go below your BMR or 1,500 kcal (men) / 1,200 kcal (women). They never cut further while you're losing more than 1% of your body weight a week.
+
+Nutrient averages use only the logged foods that report each nutrient. A nutrient reported by under 60% of your food shows "Not enough data" rather than a falsely low number. Reference amounts are the US Dietary Reference Intakes for your sex and age.

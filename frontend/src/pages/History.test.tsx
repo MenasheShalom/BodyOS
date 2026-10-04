@@ -1,6 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
+import { addDays, isoDay } from "../lib/meals";
+
+const { foodDays } = vi.hoisted(() => ({ foodDays: vi.fn() }));
 
 const del = vi.fn();
 const update = vi.fn().mockResolvedValue({});
@@ -25,6 +29,7 @@ vi.mock("../lib/queries", () => ({
     useDelete: () => ({ mutate: vi.fn() }),
   },
   useNavyPreview: () => ({ data: undefined }),
+  useFoodDays: (from: string, to: string) => foodDays(from, to),
 }));
 
 import { History } from "./History";
@@ -48,5 +53,31 @@ describe("History", () => {
       id: "e1",
       body: expect.objectContaining({ weight_kg: 81 }),
     });
+  });
+
+  it("lists the last 30 days of food, linking to each day", async () => {
+    const today = isoDay(new Date());
+    foodDays.mockReturnValue({
+      isPending: false,
+      isError: false,
+      data: [
+        { day: today, energy_kcal: 2104.6, protein_g: 162, entries: 5, excluded: false },
+        { day: addDays(today, -1), energy_kcal: 950, protein_g: 40, entries: 1, excluded: true },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <History />
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByRole("tab", { name: "Food" }));
+    expect(foodDays).toHaveBeenLastCalledWith(addDays(today, -29), today);
+    const todayRow = screen.getByRole("link", { name: /Today/ });
+    expect(todayRow).toHaveAttribute("href", `/food?day=${today}`);
+    expect(todayRow).toHaveTextContent("5 entries");
+    expect(todayRow).toHaveTextContent("2,105 kcal");
+    expect(screen.getByRole("link", { name: /Yesterday/ })).toHaveTextContent(
+      "1 entry · marked incomplete",
+    );
   });
 });

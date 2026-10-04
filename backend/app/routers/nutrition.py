@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.auth import current_user_id
 from app.clock import get_now
@@ -10,14 +10,25 @@ from app.db import Conn, get_conn
 from app.nutrition_schemas import (
     ActivityLevel,
     EstimateOut,
+    MicrosOut,
     Mode,
     NutritionSettingsIn,
     NutritionSettingsOut,
+    SuggestionOut,
     TargetsIn,
     TargetsOut,
+    TdeeOut,
+    TdeeWeekOut,
 )
 from app.profiles import load_profile
 from app.services.food_log_service import TARGET_COLUMNS, target_on
+from app.services.insight_service import (
+    check_in_for,
+    check_in_week,
+    load_insight,
+    weekly_intake,
+)
+from app.services.micros_service import micros
 from app.services.nutrition_service import NeedsData, estimate, load_settings, save_settings
 from app.services.series_service import local_today
 
@@ -112,3 +123,82 @@ def save_targets(
     ).fetchone()
     assert row is not None
     return row
+
+
+@router.get("/tdee", response_model=TdeeOut)
+def get_tdee(
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+    now: datetime = Depends(get_now),
+) -> TdeeOut:
+    profile = load_profile(conn, user_id)
+    today = local_today(now, profile)
+    try:
+        insight = load_insight(conn, user_id, profile, today)
+    except NeedsData as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    t = insight.tdee
+    return TdeeOut(
+        tdee=round(t.current),
+        confidence=None if t.confidence is None else round(t.confidence),
+        has_data=t.has_data,
+        eligible_days=t.eligible_days_now,
+        start_tdee=insight.start.tdee,
+        check_in_weekday=insight.settings.check_in_weekday,
+        weekly=[
+            TdeeWeekOut(
+                day=w.day,
+                observed=None if w.observed is None else round(w.observed),
+                tdee=round(w.smoothed),
+                intake=(
+                    None if (i := weekly_intake(insight.eligible, w.day)) is None else round(i)
+                ),
+            )
+            for w in t.weekly
+        ],
+    )
+
+
+@router.get("/suggestion", response_model=SuggestionOut | None)
+def get_suggestion(
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+    now: datetime = Depends(get_now),
+) -> SuggestionOut | None:
+    """This week's check-in, or null when nothing is owed."""
+    profile = load_profile(conn, user_id)
+    return check_in_for(conn, user_id, profile, local_today(now, profile))
+
+
+@router.post("/suggestion/dismiss", status_code=204)
+def dismiss_suggestion(
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+    now: datetime = Depends(get_now),
+) -> Response:
+    """Hide this week's check-in (the "Not this week" button)."""
+    profile = load_profile(conn, user_id)
+    settings = load_settings(conn, user_id)
+    week_start = check_in_week(local_today(now, profile), settings.check_in_weekday)
+    conn.execute(
+        "insert into target_suggestion_dismissals (user_id, week_start) values (%s, %s)"
+        " on conflict do nothing",
+        (user_id, week_start),
+    )
+    return Response(status_code=204)
+
+
+@router.get("/micros", response_model=MicrosOut)
+def get_micros(
+    window: int = 7,
+    user_id: UUID = Depends(current_user_id),
+    conn: Conn = Depends(get_conn, scope="function"),
+    now: datetime = Depends(get_now),
+) -> MicrosOut:
+    """Daily averages over the last 7 or 28 days against reference intakes."""
+    if window not in (7, 28):
+        raise HTTPException(status_code=422, detail="Choose a 7 or 28 day window")
+    profile = load_profile(conn, user_id)
+    if profile is None:
+        raise HTTPException(status_code=409, detail="Complete your profile first")
+    return micros(conn, user_id, profile, local_today(now, profile), window)

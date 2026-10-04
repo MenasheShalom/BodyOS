@@ -11,7 +11,10 @@ from app.profiles import Profile
 from app.routers.measurements import navy_for
 from app.schemas import MEASUREMENT_FIELDS, OPTIONAL_SCALE_FIELDS
 
-Source = Literal["body", "measurement"]
+Source = Literal["body", "measurement", "nutrition"]
+# How a series is smoothed: EWMA for noisy readings of a slow quantity, a 7-day rolling mean
+# for daily intake, and steps for the weekly TDEE estimate.
+TrendKind = Literal["ewma", "rolling7", "step"]
 Readings = list[tuple[datetime, float]]
 
 
@@ -23,10 +26,15 @@ class MetricSpec:
     source: Source
     alpha: float
     flat_threshold: float
+    trend: TrendKind = "ewma"
 
 
 def _body(key: str, label: str, unit: str, flat: float = 0.05) -> MetricSpec:
     return MetricSpec(key, label, unit, "body", 0.1, flat)
+
+
+def _food(key: str, label: str, unit: str) -> MetricSpec:
+    return MetricSpec(key, label, unit, "nutrition", 0.0, 0.0, "rolling7")
 
 
 def _tape(key: str, label: str) -> MetricSpec:
@@ -56,6 +64,12 @@ METRICS: dict[str, MetricSpec] = {
         _tape("arm_cm", "Arm"),
         _tape("thigh_cm", "Thigh"),
         MetricSpec("navy_body_fat_pct", "Body fat (Navy)", "%", "measurement", 0.3, 0.05),
+        _food("energy_kcal", "Calories", "kcal"),
+        _food("protein_g", "Protein", "g"),
+        _food("carbs_g", "Carbs", "g"),
+        _food("fat_g", "Fat", "g"),
+        _food("fiber_g", "Fibre", "g"),
+        MetricSpec("tdee_kcal", "Burn (TDEE)", "kcal", "nutrition", 0.0, 0.0, "step"),
     )
 }
 

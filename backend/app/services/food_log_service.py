@@ -37,10 +37,14 @@ def food_day(conn: Conn, user_id: UUID, day: date, tz: ZoneInfo) -> FoodDayOut:
     rows = entries_between(conn, user_id, day, tz)
     totals = day_totals(r["nutrients"] for r in rows)
     target = target_on(conn, user_id, day)
+    flag = conn.execute(
+        "select excluded from nutrition_day_flags where user_id = %s and day = %s", (user_id, day)
+    ).fetchone()
     return FoodDayOut(
         day=day,
         entries=[FoodLogOut.model_validate(r) for r in rows],
         totals={k: round(v, 2) for k, v in totals.totals.items()},
         coverage={k: round(v, 3) for k, v in totals.coverage.items()},
         target=TargetsOut.model_validate(target) if target else None,
+        excluded=bool(flag and flag["excluded"]),
     )
