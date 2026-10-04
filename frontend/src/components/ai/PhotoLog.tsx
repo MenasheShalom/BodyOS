@@ -1,4 +1,4 @@
-import { Camera, Database, X } from "lucide-react";
+import { Camera, Database, Image as ImageIcon, X } from "lucide-react";
 import { useState } from "react";
 import { resizeImage } from "../../lib/image";
 import { eatenAtFor } from "../../lib/meals";
@@ -114,18 +114,32 @@ export function PhotoLog({ day, meal, onDone, onCancel }: Props) {
             className="mt-1 w-full rounded-xl border border-border bg-surface px-3 py-2.5"
           />
         </label>
-        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent py-3 font-medium text-bg">
-          <Camera size={20} />
-          Take or choose a photo
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            aria-label="Food photo"
-            className="sr-only"
-            onChange={(e) => void pick(e.target.files?.[0])}
-          />
-        </label>
+        <div className="flex gap-2">
+          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent py-3 font-medium text-bg">
+            <Camera size={20} />
+            Take photo
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              aria-label="Take photo"
+              className="sr-only"
+              onChange={(e) => void pick(e.target.files?.[0])}
+            />
+          </label>
+          {/* No `capture` here, so the phone offers the photo library. */}
+          <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-surface-2 py-3 font-medium">
+            <ImageIcon size={20} />
+            Choose from gallery
+            <input
+              type="file"
+              accept="image/*"
+              aria-label="Choose from gallery"
+              className="sr-only"
+              onChange={(e) => void pick(e.target.files?.[0])}
+            />
+          </label>
+        </div>
         <p className="text-xs text-muted">
           AI estimates the foods and amounts. You can fix anything before it's logged.
         </p>

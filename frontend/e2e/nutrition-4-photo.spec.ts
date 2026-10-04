@@ -33,7 +33,7 @@ test("log a meal from a photo", async ({ page }) => {
   await notice.getByRole("button", { name: "Continue" }).click();
   await expect(notice).toBeHidden();
 
-  await sheet.getByLabel("Food photo").setInputFiles({
+  await sheet.getByLabel("Choose from gallery").setInputFiles({
     name: "plate.png",
     mimeType: "image/png",
     buffer: PNG,
