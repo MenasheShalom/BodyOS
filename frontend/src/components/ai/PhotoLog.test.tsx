@@ -78,7 +78,7 @@ function setup() {
 async function analysed() {
   const s = setup();
   await userEvent.type(screen.getByRole("textbox"), "cooked in oil");
-  await userEvent.upload(screen.getByLabelText("Food photo"), photo);
+  await userEvent.upload(screen.getByLabelText("Choose from gallery"), photo);
   await screen.findByRole("list", { name: "Foods in the photo" });
   return s;
 }
@@ -96,7 +96,7 @@ describe("PhotoLog", () => {
     const { onCancel } = setup();
     const notice = screen.getByRole("dialog", { name: "Before you use AI" });
     expect(notice).toHaveTextContent("Anthropic (Claude)");
-    expect(screen.queryByLabelText("Food photo")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Choose from gallery")).not.toBeInTheDocument();
     await userEvent.click(within(notice).getByRole("button", { name: "Continue" }));
     expect(saveSettings).toHaveBeenCalledWith({ enabled: true, acknowledged: ["food_photo"] });
     await userEvent.click(within(notice).getByRole("button", { name: "Not now" }));
@@ -147,11 +147,17 @@ describe("PhotoLog", () => {
   it("says when no food was recognised", async () => {
     analyse.mockResolvedValue({ items: [], notes: "No food is visible.", dropped: 0 });
     setup();
-    await userEvent.upload(screen.getByLabelText("Food photo"), photo);
+    await userEvent.upload(screen.getByLabelText("Choose from gallery"), photo);
     expect(await screen.findByText("Couldn't recognise food in this photo.")).toBeInTheDocument();
     expect(screen.getByText("No food is visible.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Try another photo" }));
-    expect(screen.getByLabelText("Food photo")).toBeInTheDocument();
+    expect(screen.getByLabelText("Choose from gallery")).toBeInTheDocument();
+  });
+
+  it("offers the camera and the photo library", () => {
+    setup();
+    expect(screen.getByLabelText("Take photo")).toHaveAttribute("capture", "environment");
+    expect(screen.getByLabelText("Choose from gallery")).not.toHaveAttribute("capture");
   });
 
   it("explains the monthly limit", async () => {
@@ -161,7 +167,7 @@ describe("PhotoLog", () => {
       }),
     );
     setup();
-    await userEvent.upload(screen.getByLabelText("Food photo"), photo);
+    await userEvent.upload(screen.getByLabelText("Choose from gallery"), photo);
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "You've used this month's AI requests. They reset on 1 April.",
     );
