@@ -248,3 +248,20 @@ def test_google_drops_thinking_when_the_model_rejects_it() -> None:
     provider.generate(_request())
     assert stub.calls[0]["config"].thinking_config is not None
     assert [c["config"].thinking_config for c in stub.calls[1:]] == [None, None]
+
+
+def test_missing_sdk_is_a_config_error(monkeypatch) -> None:
+    import builtins
+
+    real_import = builtins.__import__
+
+    def no_sdks(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name in ("google", "anthropic"):
+            raise ImportError(name)
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", no_sdks)
+    with pytest.raises(AIConfigError, match="google-genai"):
+        GoogleProvider("key", "m")
+    with pytest.raises(AIConfigError, match="anthropic"):
+        AnthropicProvider("key")
