@@ -4,8 +4,7 @@ services:
     runtime: python
     plan: free
     rootDir: backend
-    # Both AI SDKs are installed so switching vendor is only an env var change.
-    buildCommand: pip install ".[ai-anthropic,ai-google]"
+    buildCommand: pip install .
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
