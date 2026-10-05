@@ -117,6 +117,9 @@ def strict_json_schema(model: type[BaseModel]) -> dict[str, Any]:
             return walk(copy.deepcopy(defs[node["$ref"].split("/")[-1]]))
         bounds = [f"{k}={node[k]}" for k in _BOUNDS if k in node]
         out = {k: walk(v) for k, v in node.items() if k not in _DROP and k not in _BOUNDS}
+        if isinstance(node.get("properties"), dict):
+            # Keys here are field names, not schema keywords: a field may be called "title".
+            out["properties"] = {k: walk(v) for k, v in node["properties"].items()}
         if bounds:
             note = "(" + ", ".join(bounds) + ")"
             out["description"] = f"{out['description']} {note}" if "description" in out else note

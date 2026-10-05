@@ -4,11 +4,12 @@ from typing import Any
 
 import pytest
 from google.genai import errors as genai_errors
+from pydantic import BaseModel
 
 from app.ai.anthropic import AnthropicProvider
 from app.ai.fake import FakeProvider
 from app.ai.google import GoogleProvider
-from app.ai.prompts import food_photo
+from app.ai.prompts import body_fat, food_photo, meal_plan, recipes_from_groceries, weekly_report
 from app.ai.provider import (
     AIConfigError,
     AIImage,
@@ -67,6 +68,46 @@ def test_strict_schema_closes_objects_and_moves_bounds() -> None:
             assert node["required"] == list(node["properties"])
     grams = schema["properties"]["items"]["items"]["properties"]["grams"]
     assert "minimum=1" in grams["description"] and "maximum=2000" in grams["description"]
+
+
+def _field_names(schema: dict[str, Any]) -> list[str]:
+    names = [n["properties"] for n in _walk(schema) if isinstance(n.get("properties"), dict)]
+    return sorted(",".join(sorted(p)) for p in names)
+
+
+def _inline(schema: dict[str, Any]) -> dict[str, Any]:
+    defs = schema.get("$defs", {})
+
+    def walk(node: Any) -> Any:
+        if isinstance(node, list):
+            return [walk(n) for n in node]
+        if not isinstance(node, dict):
+            return node
+        if "$ref" in node:
+            return walk(defs[node["$ref"].split("/")[-1]])
+        return {k: walk(v) for k, v in node.items() if k != "$defs"}
+
+    result: dict[str, Any] = walk(schema)
+    return result
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        food_photo.FoodPhotoOut,
+        weekly_report.ReportOut,
+        body_fat.BodyFatOut,
+        meal_plan.MealPlanOut,
+        recipes_from_groceries.RecipesOut,
+    ],
+)
+def test_strict_schema_keeps_every_field(model: type[BaseModel]) -> None:
+    """A field named like a schema keyword (the report's section "title") must survive."""
+    schema = strict_json_schema(model)
+    assert _field_names(schema) == _field_names(_inline(model.model_json_schema()))
+    section = schema["properties"]["sections"]["items"] if model is weekly_report.ReportOut else {}
+    if section:
+        assert section["required"] == ["title", "body", "tone"]
 
 
 def test_fake_provider_answers_and_fails_on_markers() -> None:
