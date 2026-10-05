@@ -5,7 +5,7 @@ from typing import Annotated
 from pydantic import BaseModel, Field, StringConstraints
 
 PROMPT_VERSION = "body-fat-1"
-MAX_WIDTH = 8.0  # a wider range says nothing useful; it is narrowed around the midpoint
+MAX_WIDTH = 4.0  # a wider range says nothing useful; it is narrowed around the midpoint
 
 SYSTEM = """You estimate body-fat percentage from progress photos for a personal fitness
 tracking app. The person took these photos of themselves and asked for this estimate.
