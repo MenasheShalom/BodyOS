@@ -234,8 +234,25 @@ def test_google_errors_are_translated() -> None:
         (err(genai_errors.ClientError, 404), AIConfigError),
         (err(genai_errors.ClientError, 400), AIInvalidOutput),
     ]:
+        # an outage is retried once, so give the stub the same error twice
+        stub = StubGemini([error, error])
         with pytest.raises(expected):
-            GoogleProvider(None, "m", client=StubGemini([error])).generate(_request())
+            GoogleProvider(None, "m", client=stub, sleep=lambda _: None).generate(_request())
+
+
+def test_google_retries_a_brief_outage_once() -> None:
+    overloaded = genai_errors.ServerError(
+        503, {"error": {"code": 503, "message": "The model is overloaded.", "status": "X"}}
+    )
+    waits: list[float] = []
+    stub = StubGemini([overloaded, _gemini(json.dumps(ANSWER))])
+    result = GoogleProvider(None, "m", client=stub, sleep=waits.append).generate(_request())
+    assert result.value.items[0].name == "Hummus"
+    assert waits == [2.0] and len(stub.calls) == 2
+
+    stub = StubGemini([overloaded, overloaded])
+    with pytest.raises(AIUnavailable, match="Google error 503: The model is overloaded."):
+        GoogleProvider(None, "m", client=stub, sleep=lambda _: None).generate(_request())
 
 
 def test_google_drops_thinking_when_the_model_rejects_it() -> None:

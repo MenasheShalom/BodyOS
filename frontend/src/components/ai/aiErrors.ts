@@ -15,7 +15,7 @@ export function aiErrorMessage(e: unknown): string {
     case "ai_refused":
       return "This photo couldn't be analysed. Try another photo, or log the food by hand.";
     case "ai_unavailable":
-      return "AI is unavailable right now. Try again in a minute, or log the food by hand.";
+      return `${e.message} You can also log the food by hand.`;
     case "ai_invalid_output":
       return "Couldn't read the AI's answer. Try again.";
     case "ai_disabled":
