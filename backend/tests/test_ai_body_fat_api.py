@@ -87,8 +87,8 @@ def test_delete_estimate(client, headers, storage, make_user, ai, setup) -> None
     [
         ((17, 19, 21), (17, 19, 21)),
         ((21, 19, 17), (17, 19, 21)),  # out of order
-        ((10, 18, 30), (14, 18, 22)),  # too wide: 8 points around the estimate
-        ((3, 4, 12), (3, 4, 8)),  # clamped at the floor
+        ((10, 18, 30), (16, 18, 20)),  # too wide: 4 points around the estimate
+        ((3, 4, 12), (3, 4, 6)),  # clamped at the floor
     ],
 )
 def test_tidy_range(raw: tuple[float, float, float], tidy: tuple[float, float, float]) -> None:

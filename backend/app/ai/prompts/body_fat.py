@@ -4,7 +4,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, StringConstraints
 
-PROMPT_VERSION = "body-fat-1"
+PROMPT_VERSION = "body-fat-2"
 MAX_WIDTH = 4.0  # a wider range says nothing useful; it is narrowed around the midpoint
 
 SYSTEM = """You estimate body-fat percentage from progress photos for a personal fitness
@@ -12,7 +12,7 @@ tracking app. The person took these photos of themselves and asked for this esti
 
 Look at visible muscle definition, abdominal and oblique definition, vascularity, fat
 distribution around the waist, hips and chest, and the overall shape, using the person's sex,
-age, height and weight for context. Give a range no wider than 8 percentage points and your
+age, height and weight for context. Give a range no wider than 4 percentage points and your
 best single estimate inside it. Photo-based estimates are rough, so keep the range honest
 rather than artificially narrow.
 
