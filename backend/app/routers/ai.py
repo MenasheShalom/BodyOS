@@ -38,9 +38,10 @@ MAX_HINT = 300
 
 def _settings_row(conn: Conn, user_id: UUID) -> dict[str, Any]:
     row = conn.execute(
-        "select enabled, acknowledged from ai_settings where user_id = %s", (user_id,)
+        "select enabled, acknowledged, plan_preferences from ai_settings where user_id = %s",
+        (user_id,),
     ).fetchone()
-    return row or {"enabled": True, "acknowledged": []}
+    return row or {"enabled": True, "acknowledged": [], "plan_preferences": ""}
 
 
 @router.get("/status", response_model=AIStatusOut)
@@ -86,7 +87,7 @@ def put_ai_settings(
     row = conn.execute(
         "insert into ai_settings (user_id, enabled, acknowledged) values (%s, %s, %s)"
         " on conflict (user_id) do update set enabled = excluded.enabled,"
-        " acknowledged = excluded.acknowledged returning enabled, acknowledged",
+        " acknowledged = excluded.acknowledged returning enabled, acknowledged, plan_preferences",
         (user_id, body.enabled, sorted(set(body.acknowledged))),
     ).fetchone()
     assert row is not None

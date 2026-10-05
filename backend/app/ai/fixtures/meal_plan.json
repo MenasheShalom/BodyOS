@@ -1,0 +1,17 @@
+{
+  "meals": [
+    {"meal": "breakfast", "title": "Milk and dragon fruit", "ingredients": [
+      {"name": "Milk", "search_query": "milk", "grams": 300},
+      {"name": "Dragon fruit", "search_query": "dragonfruit", "grams": 150}
+    ]},
+    {"meal": "lunch", "title": "Chicken and avocado", "ingredients": [
+      {"name": "Roast chicken breast", "search_query": "chicken", "grams": 180},
+      {"name": "Avocado", "search_query": "avocados", "grams": 70}
+    ]},
+    {"meal": "dinner", "title": "Hummus plate", "ingredients": [
+      {"name": "Hummus", "search_query": "hummus", "grams": 120},
+      {"name": "Chicken breast", "search_query": "Chicken", "grams": 120}
+    ]}
+  ],
+  "notes": "Swap the dragon fruit for any fruit you have."
+}

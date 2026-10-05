@@ -93,3 +93,16 @@ def test_body_fat_range_must_be_ordered(db, make_user) -> None:
             conn.execute(ESTIMATE, (a, photo, 20, 19, 21))
     with psycopg.connect(db) as conn, pytest.raises(psycopg.errors.CheckViolation):
         conn.execute(ESTIMATE, (a, [], 17, 19, 21))
+
+
+def test_planning_columns_are_bounded(db, make_user) -> None:
+    a = make_user()
+    with psycopg.connect(db) as conn, pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute(
+            "insert into ai_settings (user_id, plan_preferences) values (%s, %s)", (a, "x" * 501)
+        )
+    with psycopg.connect(db) as conn, pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute(
+            "insert into recipes (user_id, name, servings, instructions) values (%s, 'r', 1, %s)",
+            (a, "x" * 4001),
+        )

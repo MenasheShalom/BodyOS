@@ -277,6 +277,7 @@ class RecipeIn(BaseModel):
     servings: float = Field(ge=0.25, le=100)
     cooked_weight_g: float | None = Field(default=None, ge=1, le=20000)
     note: Annotated[str, StringConstraints(max_length=500)] | None = None
+    instructions: Annotated[str, StringConstraints(max_length=4000)] | None = None
     items: list[RecipeItemIn] = Field(min_length=1, max_length=50)
 
 
@@ -294,6 +295,7 @@ class RecipeOut(BaseModel):
     servings: float
     cooked_weight_g: float | None
     note: str | None
+    instructions: str | None = None
     food_id: UUID
     items: list[RecipeItemOut]
     total_grams: float
