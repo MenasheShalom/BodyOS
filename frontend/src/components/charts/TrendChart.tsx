@@ -1,6 +1,7 @@
 import {
   CartesianGrid,
   ComposedChart,
+  ErrorBar,
   Line,
   ReferenceArea,
   ReferenceLine,
@@ -11,7 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { BMI_ZONES, bmiBands, bmiBoundariesAround } from "../../lib/bmi";
-import { type ChartRow, mergeSeries, yDomain } from "../../lib/chart";
+import { type ChartRow, mergeSeries, withRanges, yDomain } from "../../lib/chart";
 import { formatDay, formatValue } from "../../lib/format";
 import { TREND_LABEL, trendKind } from "../../lib/metrics";
 import type { Series } from "../../lib/types";
@@ -41,15 +42,17 @@ function Legend({ series, color, goal }: { series: Series; color: string; goal: 
           <svg width="10" height="10" aria-hidden="true">
             <circle cx="5" cy="5" r="4" fill={color} fillOpacity={0.35} />
           </svg>
-          {kind === "rolling7" ? "Days" : "Readings"}
+          {kind === "rolling7" ? "Days" : kind === "none" ? "Estimate and range" : "Readings"}
         </span>
       )}
-      <span className="flex items-center gap-1.5">
-        <svg width="16" height="10" aria-hidden="true">
-          <line x1="0" y1="5" x2="16" y2="5" stroke={color} strokeWidth={2} />
-        </svg>
-        {TREND_LABEL[kind]}
-      </span>
+      {kind !== "none" && (
+        <span className="flex items-center gap-1.5">
+          <svg width="16" height="10" aria-hidden="true">
+            <line x1="0" y1="5" x2="16" y2="5" stroke={color} strokeWidth={2} />
+          </svg>
+          {TREND_LABEL[kind]}
+        </span>
+      )}
       {goal && (
         <span className="flex items-center gap-1.5">
           <svg width="16" height="10" aria-hidden="true">
@@ -70,9 +73,25 @@ function Legend({ series, color, goal }: { series: Series; color: string; goal: 
   );
 }
 
-function Panel({ rows, series, rawKey, trendKey, color, goalValue, compact }: PanelProps) {
+function Panel({
+  rows: baseRows,
+  series,
+  rawKey,
+  trendKey,
+  color,
+  goalValue,
+  compact,
+}: PanelProps) {
   const kind = trendKind(series.metric);
-  const values = [...series.points, ...series.trend].map((p) => p.value);
+  const band = series.band ?? [];
+  // A range per point is drawn as an error bar: distances below and above the estimate.
+  const rangeKey = `${rawKey}Range`;
+  const rows = withRanges(baseRows, band, rawKey, rangeKey);
+  const values = [
+    ...series.points.map((p) => p.value),
+    ...series.trend.map((p) => p.value),
+    ...band.flatMap((b) => [b.low, b.high]),
+  ];
   // BMI gets its WHO zones as shaded bands, with the nearest boundaries kept in view.
   const boundaries = series.metric === "bmi" ? bmiBoundariesAround(values) : [];
   const domain = yDomain([...values, ...boundaries], goalValue);
@@ -119,7 +138,9 @@ function Panel({ rows, series, rawKey, trendKey, color, goalValue, compact }: Pa
                   ? TREND_LABEL[kind]
                   : kind === "rolling7"
                     ? "Day"
-                    : "Reading",
+                    : kind === "none"
+                      ? "Estimate"
+                      : "Reading",
               ]}
             />
             {bands.map((b) => {
@@ -146,18 +167,29 @@ function Panel({ rows, series, rawKey, trendKey, color, goalValue, compact }: Pa
               <ReferenceLine key={y} y={y} stroke="var(--color-muted)" strokeOpacity={0.5} />
             ))}
             {kind !== "step" && (
-              <Scatter dataKey={rawKey} fill={color} fillOpacity={0.35} isAnimationActive={false} />
+              <Scatter
+                dataKey={rawKey}
+                fill={color}
+                fillOpacity={kind === "none" ? 0.9 : 0.35}
+                isAnimationActive={false}
+              >
+                {band.length > 0 && (
+                  <ErrorBar dataKey={rangeKey} direction="y" width={6} stroke={color} />
+                )}
+              </Scatter>
             )}
-            <Line
-              type={kind === "step" ? "stepAfter" : "linear"}
-              dataKey={trendKey}
-              stroke={color}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
-              connectNulls
-              isAnimationActive={false}
-            />
+            {kind !== "none" && (
+              <Line
+                type={kind === "step" ? "stepAfter" : "linear"}
+                dataKey={trendKey}
+                stroke={color}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+                connectNulls
+                isAnimationActive={false}
+              />
+            )}
             {goalValue != null && (
               <ReferenceLine y={goalValue} stroke={color} strokeWidth={1.5} strokeDasharray="4 3" />
             )}

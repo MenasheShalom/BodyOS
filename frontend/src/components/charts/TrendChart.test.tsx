@@ -49,4 +49,26 @@ describe("TrendChart legend", () => {
     expect(screen.getByText("Readings")).toBeInTheDocument();
     expect(screen.getByText("Trend")).toBeInTheDocument();
   });
+
+  it("draws AI photo estimates as ranges without a trend line", () => {
+    render(
+      <TrendChart
+        primary={{
+          ...series("ai_body_fat_pct", "Body fat (AI photo)"),
+          unit: "%",
+          trend: [],
+          band: [
+            { date: "2026-02-28", low: 17, high: 21 },
+            { date: "2026-03-01", low: 16, high: 20 },
+          ],
+          points: [
+            { date: "2026-02-28", value: 19 },
+            { date: "2026-03-01", value: 18 },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText("Estimate and range")).toBeInTheDocument();
+    expect(screen.queryByText("Trend")).not.toBeInTheDocument();
+  });
 });

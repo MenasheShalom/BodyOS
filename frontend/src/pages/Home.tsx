@@ -1,6 +1,7 @@
 import { ChevronRight, Images } from "lucide-react";
 import { Link } from "react-router";
 import { type LogTab, useLogSheet } from "../components/AppLayout";
+import { ReportCard } from "../components/ai/ReportCard";
 import { EmptyState, ErrorState, Spinner } from "../components/EmptyState";
 import { GoalProgress } from "../components/GoalProgress";
 import { CheckInCard } from "../components/nutrition/CheckInCard";
@@ -88,6 +89,7 @@ export function Home() {
       ))}
 
       {d.check_in && <CheckInCard suggestion={d.check_in} />}
+      <ReportCard />
 
       <section aria-label="Body composition" className="grid grid-cols-2 gap-3">
         {d.hero.map((s) => (

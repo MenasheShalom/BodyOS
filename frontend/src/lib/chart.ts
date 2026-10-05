@@ -33,3 +33,19 @@ export function yDomain(values: number[], goal: number | null | undefined): [num
   const round = (n: number) => Math.round(n * 10) / 10;
   return [round(lo - pad), round(hi + pad)];
 }
+
+/** Adds `[below, above]` distances from each point to its range, for drawing error bars. */
+export function withRanges(
+  rows: ChartRow[],
+  band: { date: string; low: number; high: number }[],
+  rawKey: "raw" | "raw2",
+  rangeKey: string,
+): (ChartRow & Record<string, unknown>)[] {
+  if (band.length === 0) return rows;
+  const byDate = new Map(band.map((b) => [b.date, b]));
+  return rows.map((r) => {
+    const b = byDate.get(r.date);
+    const v = r[rawKey];
+    return b && v != null ? { ...r, [rangeKey]: [v - b.low, b.high - v] } : r;
+  });
+}

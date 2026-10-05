@@ -1,5 +1,5 @@
 import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "./api";
+import { ApiError, api } from "./api";
 import type {
   AiSettings,
   AiStatus,
@@ -42,6 +42,9 @@ import type {
   RangeKey,
   Series,
   FoodPhotoResult,
+  BodyFatEstimate,
+  ReportList,
+  WeeklyReport,
 } from "./types";
 
 export const qk = {
@@ -67,6 +70,9 @@ export const qk = {
   micros: (window: number) => ["nutrition-micros", window] as const,
   foodDays: (from: string, to: string) => ["food-days", from, to] as const,
   aiStatus: ["ai-status"] as const,
+  reports: ["ai-reports"] as const,
+  report: (week: string) => ["ai-report", week] as const,
+  bodyFat: ["ai-body-fat"] as const,
   aiSettings: ["ai-settings"] as const,
   estimate: (p: EstimateParams) =>
     ["nutrition-estimate", p.mode, p.activity_level, p.deficit_pct, p.protein_g_per_kg] as const,
@@ -498,3 +504,70 @@ export const useLogBatch = () =>
   useLogMutation((entries: BatchEntry[]) =>
     api<FoodLogEntry[]>("/food-log/batch", { method: "POST", json: { entries } }),
   );
+
+export function useReports(enabled = true) {
+  return useQuery({
+    queryKey: qk.reports,
+    queryFn: () => api<ReportList>("/ai/reports"),
+    enabled,
+  });
+}
+
+export function useReport(week: string) {
+  return useQuery({
+    queryKey: qk.report(week),
+    // 404 means "not written yet", which the page handles as a normal state.
+    queryFn: async () => {
+      try {
+        return await api<WeeklyReport>(`/ai/reports/${week}`);
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) return null;
+        throw e;
+      }
+    },
+  });
+}
+
+export function useWriteReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (week: string) =>
+      api<WeeklyReport>(`/ai/reports/${week}`, { method: "POST" }),
+    onSuccess: (report) => {
+      qc.setQueryData(qk.report(report.week_start), report);
+      void qc.invalidateQueries({ queryKey: qk.reports });
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: qk.aiStatus }),
+  });
+}
+
+export function useBodyFatEstimates(enabled = true) {
+  return useQuery({
+    queryKey: qk.bodyFat,
+    queryFn: () => api<BodyFatEstimate[]>("/ai/body-fat"),
+    enabled,
+  });
+}
+
+function invalidateBodyFat(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: qk.bodyFat });
+  void qc.invalidateQueries({ queryKey: ["series", "ai_body_fat_pct"] });
+}
+
+export function useEstimateBodyFat() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (photoIds: string[]) =>
+      api<BodyFatEstimate>("/ai/body-fat", { method: "POST", json: { photo_ids: photoIds } }),
+    onSuccess: () => invalidateBodyFat(qc),
+    onSettled: () => void qc.invalidateQueries({ queryKey: qk.aiStatus }),
+  });
+}
+
+export function useDeleteBodyFat() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<void>(`/ai/body-fat/${id}`, { method: "DELETE" }),
+    onSuccess: () => invalidateBodyFat(qc),
+  });
+}

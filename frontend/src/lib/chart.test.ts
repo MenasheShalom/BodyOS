@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeSeries, yDomain } from "./chart";
+import { mergeSeries, yDomain, withRanges } from "./chart";
 import type { Series } from "./types";
 
 const series = (points: [string, number][], trend: [string, number][]): Series => ({
@@ -71,5 +71,25 @@ describe("yDomain", () => {
   it("still gives a visible range for a flat line", () => {
     const [lo, hi] = yDomain([80, 80], null);
     expect(hi - lo).toBeGreaterThan(0);
+  });
+});
+
+describe("withRanges", () => {
+  it("adds the distance below and above each estimate", () => {
+    const rows = [
+      { date: "2026-02-28", raw: 19 },
+      { date: "2026-03-01", raw: 18 },
+      { date: "2026-03-02" },
+    ];
+    const band = [
+      { date: "2026-02-28", low: 17, high: 21 },
+      { date: "2026-03-01", low: 16, high: 21 },
+    ];
+    expect(withRanges(rows, band, "raw", "rawRange")).toEqual([
+      { date: "2026-02-28", raw: 19, rawRange: [2, 2] },
+      { date: "2026-03-01", raw: 18, rawRange: [2, 3] },
+      { date: "2026-03-02" },
+    ]);
+    expect(withRanges(rows, [], "raw", "rawRange")).toBe(rows);
   });
 });

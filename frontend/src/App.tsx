@@ -17,6 +17,8 @@ import { SavedMeals } from "./pages/SavedMeals";
 import { Onboarding } from "./pages/Onboarding";
 import { PhotoCompare } from "./pages/PhotoCompare";
 import { Photos } from "./pages/Photos";
+import { ReportDetail } from "./pages/ReportDetail";
+import { Reports } from "./pages/Reports";
 import { Settings } from "./pages/Settings";
 import { Targets } from "./pages/Targets";
 import { SignIn } from "./pages/SignIn";
@@ -44,6 +46,8 @@ export function App() {
           <Route path="photos" element={<Photos />} />
           <Route path="photos/compare" element={<PhotoCompare />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="reports/:week" element={<ReportDetail />} />
           <Route path="nutrition" element={<Nutrition />} />
           <Route path="nutrition/setup" element={<NutritionSetup />} />
           <Route path="nutrition/targets" element={<Targets />} />
