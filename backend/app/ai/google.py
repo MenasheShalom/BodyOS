@@ -84,10 +84,11 @@ class GoogleProvider:
                 model=self.model, contents=contents, config=self._config(request)
             )
         except errors.ClientError as e:
-            if e.code in (401, 403):
+            # Google answers a bad key with 400 API_KEY_INVALID, not 401.
+            if e.code in (401, 403) or "api key" in str(e.message).lower():
                 raise AIConfigError(f"Google rejected the API key: {e.message}") from e
             if e.code == 404:
-                raise AIConfigError(f"Unknown Gemini model {self.model!r}") from e
+                raise AIConfigError(self._unknown_model_message()) from e
             if e.code == 429:
                 raise AIUnavailable(e.message or "rate limited") from e
             if e.code == 400 and self._thinking_supported and "thinking" in str(e.message).lower():
@@ -99,6 +100,20 @@ class GoogleProvider:
             raise AIUnavailable(e.message or "server error") from e
         except (TimeoutError, OSError) as e:
             raise AIUnavailable(str(e)) from e
+
+    def _unknown_model_message(self) -> str:
+        """Names a few models this key can use, since AI_MODEL is the usual culprit."""
+        message = f"Gemini has no model called {self.model!r} (check AI_MODEL)"
+        try:
+            names = [
+                m.name.removeprefix("models/")
+                for m in self._client.models.list()
+                if m.name and "generateContent" in (m.supported_actions or [])
+            ]
+        except Exception:  # the hint is best-effort; the real error is the 404
+            return message
+        flash = [n for n in names if "flash" in n] or names
+        return f"{message}. Available models include: {', '.join(flash[:6])}" if flash else message
 
     def generate(self, request: AIRequest[T]) -> AIResult[T]:
         started = time.monotonic()

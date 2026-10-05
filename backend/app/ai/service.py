@@ -132,8 +132,8 @@ def run(
         except AIUnavailable:
             _record(conn, user_id, provider, request, now, "unavailable")
             raise
-        except AIConfigError:
-            logger.error("AI provider misconfigured provider=%s", provider.name)
+        except AIConfigError as e:
+            logger.error("AI provider misconfigured provider=%s: %s", provider.name, e)
             raise
         _record(conn, user_id, provider, request, now, "ok", result)
         return result
@@ -151,8 +151,9 @@ def error_body(e: Exception) -> tuple[int, dict[str, Any]]:
             "resets_on": e.resets_on.isoformat(),
         }
     if isinstance(e, AIConfigError):
+        # The reason (bad key, unknown model) never contains the key itself.
         return 503, {
-            "detail": "AI isn't set up correctly on the server",
+            "detail": f"AI isn't set up correctly on the server: {e}",
             "code": "ai_misconfigured",
         }
     if isinstance(e, AIUnavailable):
