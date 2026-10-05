@@ -46,6 +46,7 @@ export const SERIES_METRICS: { key: string; label: string; unit: string; group: 
   { key: "body_fat_pct", label: "Body fat", unit: "%", group: "Composition" },
   { key: "muscle_mass_kg", label: "Muscle mass", unit: "kg", group: "Composition" },
   { key: "navy_body_fat_pct", label: "Body fat (Navy)", unit: "%", group: "Composition" },
+  { key: "ai_body_fat_pct", label: "Body fat (AI photo)", unit: "%", group: "Composition" },
   { key: "weight_kg", label: "Weight", unit: "kg", group: "Scale" },
   { key: "bmi", label: "BMI", unit: "", group: "Scale" },
   ...SCALE_FIELDS.filter((f) => !["body_fat_pct", "muscle_mass_kg"].includes(f.key)).map((f) => ({
@@ -64,14 +65,21 @@ export const SERIES_METRICS: { key: string; label: string; unit: string; group: 
 ];
 
 /** How a series' trend line is made, for its legend and line shape (backend app/metrics.py). */
-export function trendKind(metric: string): "ewma" | "rolling7" | "step" {
+export function trendKind(metric: string): "ewma" | "rolling7" | "step" | "none" {
   if (metric === "tdee_kcal") return "step";
+  // Each AI photo estimate is a separate rough range, so there's no trend line.
+  if (metric === "ai_body_fat_pct") return "none";
   return ["energy_kcal", "protein_g", "carbs_g", "fat_g", "fiber_g"].includes(metric)
     ? "rolling7"
     : "ewma";
 }
 
-export const TREND_LABEL = { ewma: "Trend", rolling7: "7-day average", step: "Weekly estimate" };
+export const TREND_LABEL = {
+  ewma: "Trend",
+  rolling7: "7-day average",
+  step: "Weekly estimate",
+  none: "",
+};
 
 export const GOAL_METRICS: { key: GoalMetric; label: string; unit: string }[] = [
   { key: "body_fat_pct", label: "Body fat", unit: "%" },

@@ -76,6 +76,8 @@ export type Series = {
   min: number | null;
   max: number | null;
   latest: number | null;
+  /** Ranges for metrics that are estimates rather than readings (AI photo body fat). */
+  band?: { date: string; low: number; high: number }[];
 };
 
 export type MetricSummary = {
@@ -346,3 +348,32 @@ export type FoodPhotoResult = { items: FoodPhotoItem[]; notes: string; dropped: 
 export type BatchEntry =
   | (FoodLogInput & { kind: "food"; origin?: LogOrigin })
   | (QuickAddInput & { kind: "quick"; origin?: LogOrigin });
+
+export type ReportTone = "good" | "watch" | "neutral";
+export type WeeklyReport = {
+  week_start: string;
+  facts: Record<string, unknown>;
+  summary: string;
+  sections: { title: string; body: string; tone: ReportTone }[];
+  focus: string[];
+  /** Written from a plain template because the AI text didn't match the numbers. */
+  fallback: boolean;
+  can_regenerate: boolean;
+  created_at: string;
+  updated_at: string;
+};
+export type ReportList = {
+  /** The latest check-in day, on or before today. */
+  current_week_start: string;
+  reports: { week_start: string; summary: string; fallback: boolean }[];
+};
+export type BodyFatEstimate = {
+  id: string;
+  taken_on: string;
+  photo_ids: string[];
+  low_pct: number;
+  estimate_pct: number;
+  high_pct: number;
+  notes: string;
+  created_at: string;
+};

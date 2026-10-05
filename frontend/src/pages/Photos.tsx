@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { BodyFatDay } from "../components/ai/BodyFatDay";
 import { useLogSheet } from "../components/AppLayout";
 import { EmptyState, ErrorState, Spinner } from "../components/EmptyState";
 import { formatDay } from "../lib/format";
-import { useDeletePhoto, usePhotos } from "../lib/queries";
+import { useBodyFatEstimates, useDeletePhoto, usePhotos } from "../lib/queries";
 import type { Photo, Pose } from "../lib/types";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -35,6 +36,9 @@ export function Photos() {
   const [open, setOpen] = useState<Photo | null>(null);
   const photos = usePhotos(pose);
   const remove = useDeletePhoto();
+  const estimates = useBodyFatEstimates();
+  // Newest first from the API, so the first one per day is the latest.
+  const estimateFor = (day: string) => estimates.data?.find((e) => e.taken_on === day);
   const logSheet = useLogSheet();
 
   return (
@@ -101,6 +105,7 @@ export function Photos() {
                 </button>
               ))}
             </div>
+            {!pose && <BodyFatDay photos={group.photos} estimate={estimateFor(group.day)} />}
           </div>
         ))}
 

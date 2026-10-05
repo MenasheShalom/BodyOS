@@ -1,0 +1,8 @@
+{
+  "summary": "A steady week: your weight trend kept drifting down and you logged most days.",
+  "sections": [
+    {"title": "Body", "body": "The weight trend moved in the right direction while lean mass held.", "tone": "good"},
+    {"title": "Eating", "body": "Protein was close to target on most logged days.", "tone": "neutral"}
+  ],
+  "focus": ["Log the weekend days too.", "Keep protein at every meal."]
+}

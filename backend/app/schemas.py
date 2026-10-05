@@ -159,6 +159,12 @@ class PointOut(BaseModel):
     value: float
 
 
+class BandOut(BaseModel):
+    date: date
+    low: float
+    high: float
+
+
 class SeriesOut(BaseModel):
     metric: str
     label: str
@@ -170,6 +176,7 @@ class SeriesOut(BaseModel):
     min: float | None
     max: float | None
     latest: float | None
+    band: list[BandOut] = []
 
 
 def _r(value: float | None) -> float | None:
@@ -188,6 +195,7 @@ def series_out(result: "SeriesResult") -> SeriesOut:
         min=_r(result.min),
         max=_r(result.max),
         latest=_r(result.latest),
+        band=[BandOut(date=d, low=low, high=high) for d, low, high in result.band],
     )
 
 

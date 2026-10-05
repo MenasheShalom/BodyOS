@@ -8,6 +8,7 @@ vi.mock("../lib/queries", () => ({ useDashboard: () => useDashboard() }));
 vi.mock("../components/AppLayout", () => ({ useLogSheet: () => ({ open: vi.fn() }) }));
 vi.mock("../components/charts/Sparkline", () => ({ Sparkline: () => null }));
 vi.mock("../components/RecentWeighIns", () => ({ RecentWeighIns: () => <p>recent weigh-ins</p> }));
+vi.mock("../components/ai/ReportCard", () => ({ ReportCard: () => null }));
 vi.mock("../components/nutrition/CheckInCard", () => ({
   CheckInCard: () => <p>check-in card</p>,
 }));

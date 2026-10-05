@@ -1,7 +1,13 @@
 import { Line, LineChart, ResponsiveContainer, YAxis } from "recharts";
 import type { Point } from "../../lib/types";
 
-export function Sparkline({ points, color = "var(--color-accent)" }: { points: Point[]; color?: string }) {
+export function Sparkline({
+  points,
+  color = "var(--color-accent)",
+}: {
+  points: Point[];
+  color?: string;
+}) {
   return (
     <div className="mt-3 h-10" aria-hidden="true">
       <ResponsiveContainer width="100%" height="100%">

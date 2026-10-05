@@ -1,5 +1,6 @@
-from datetime import date
-from typing import Literal
+from datetime import date, datetime
+from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -42,3 +43,47 @@ class FoodPhotoResultOut(BaseModel):
     items: list[FoodPhotoItemOut]
     notes: str
     dropped: int  # items left out because their numbers weren't plausible
+
+
+class BodyFatIn(BaseModel):
+    photo_ids: list[UUID] = Field(min_length=1, max_length=3)
+
+
+class BodyFatEstimateOut(BaseModel):
+    id: UUID
+    taken_on: date
+    photo_ids: list[UUID]
+    low_pct: float
+    estimate_pct: float
+    high_pct: float
+    notes: str
+    created_at: datetime
+
+
+class ReportSectionOut(BaseModel):
+    title: str
+    body: str
+    tone: Literal["good", "watch", "neutral"]
+
+
+class WeeklyReportOut(BaseModel):
+    week_start: date
+    facts: dict[str, Any]
+    summary: str
+    sections: list[ReportSectionOut]
+    focus: list[str]
+    fallback: bool  # written from a plain template because the AI text didn't check out
+    can_regenerate: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ReportListItemOut(BaseModel):
+    week_start: date
+    summary: str
+    fallback: bool
+
+
+class ReportsOut(BaseModel):
+    current_week_start: date  # the latest check-in day, on or before today
+    reports: list[ReportListItemOut]

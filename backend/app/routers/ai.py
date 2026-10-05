@@ -6,7 +6,14 @@ from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 
 from app.ai.factory import get_provider
 from app.ai.prompts import food_photo
-from app.ai.provider import AIConfigError, AIImage, AIProvider, AIRequest, MediaType
+from app.ai.provider import (
+    AIConfigError,
+    AIImage,
+    AIProvider,
+    AIRequest,
+    MediaType,
+    sniff_media_type,
+)
 from app.ai.service import month_window, run, used_this_month
 from app.ai_schemas import (
     AISettingsIn,
@@ -87,14 +94,10 @@ def put_ai_settings(
 
 
 def _media_type(data: bytes) -> MediaType:
-    """Checked from the file's first bytes, not the name or the declared type."""
-    if data.startswith(b"\xff\xd8\xff"):
-        return "image/jpeg"
-    if data.startswith(b"\x89PNG\r\n\x1a\n"):
-        return "image/png"
-    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
-        return "image/webp"
-    raise HTTPException(status_code=415, detail="Use a JPEG, PNG or WebP photo")
+    media_type = sniff_media_type(data)
+    if media_type is None:
+        raise HTTPException(status_code=415, detail="Use a JPEG, PNG or WebP photo")
+    return media_type
 
 
 @router.post("/food-photo", response_model=FoodPhotoResultOut)

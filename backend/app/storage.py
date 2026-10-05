@@ -13,6 +13,7 @@ class PhotoStorage(Protocol):
     def signed_urls(self, paths: list[str], expires_in: int = 3600) -> dict[str, str]: ...
     def exists(self, path: str) -> bool: ...
     def delete(self, path: str) -> None: ...
+    def download(self, path: str) -> bytes: ...
 
 
 def photo_path(user_id: UUID, photo_id: UUID) -> str:
@@ -59,6 +60,11 @@ class SupabaseStorage:
     def delete(self, path: str) -> None:
         res = self._client.request("DELETE", f"/object/{self._bucket}", json={"prefixes": [path]})
         res.raise_for_status()
+
+    def download(self, path: str) -> bytes:
+        res = self._client.get(f"/object/authenticated/{self._bucket}/{path}")
+        res.raise_for_status()
+        return res.content
 
 
 def get_storage(settings: Settings = Depends(get_settings)) -> PhotoStorage:

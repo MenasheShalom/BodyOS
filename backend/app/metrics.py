@@ -11,10 +11,11 @@ from app.profiles import Profile
 from app.routers.measurements import navy_for
 from app.schemas import MEASUREMENT_FIELDS, OPTIONAL_SCALE_FIELDS
 
-Source = Literal["body", "measurement", "nutrition"]
+Source = Literal["body", "measurement", "nutrition", "ai"]
 # How a series is smoothed: EWMA for noisy readings of a slow quantity, a 7-day rolling mean
-# for daily intake, and steps for the weekly TDEE estimate.
-TrendKind = Literal["ewma", "rolling7", "step"]
+# for daily intake, steps for the weekly TDEE estimate, and none for AI photo estimates
+# (each is a separate rough reading, shown as a range).
+TrendKind = Literal["ewma", "rolling7", "step", "none"]
 Readings = list[tuple[datetime, float]]
 
 
@@ -70,6 +71,7 @@ METRICS: dict[str, MetricSpec] = {
         _food("fat_g", "Fat", "g"),
         _food("fiber_g", "Fibre", "g"),
         MetricSpec("tdee_kcal", "Burn (TDEE)", "kcal", "nutrition", 0.0, 0.0, "step"),
+        MetricSpec("ai_body_fat_pct", "Body fat (AI photo)", "%", "ai", 0.0, 0.0, "none"),
     )
 }
 

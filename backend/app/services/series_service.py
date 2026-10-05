@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Literal
 from uuid import UUID
@@ -34,6 +34,8 @@ class SeriesResult:
     min: float | None
     max: float | None
     latest: float | None
+    # (day, low, high) for metrics that are ranges rather than readings
+    band: list[tuple[date, float, float]] = field(default_factory=list)
 
 
 def local_today(now: datetime, profile: Profile | None) -> date:
@@ -77,6 +79,8 @@ def series_for(
     today: date,
 ) -> SeriesResult:
     spec = METRICS[metric]
+    if spec.source == "ai":
+        return _ai_body_fat_series(conn, user_id, spec, RANGE_DAYS[range_key], today)
     if spec.source == "nutrition":
         from app.services.nutrition_series import build_nutrition_series
 
@@ -98,3 +102,31 @@ def series_for(
         )
     tz = profile.tz if profile else UTC_ZONE
     return build_series(load_readings(conn, user_id, metric, profile), spec, tz, range_key, today)
+
+
+def _ai_body_fat_series(
+    conn: Conn, user_id: UUID, spec: MetricSpec, days: int | None, today: date
+) -> SeriesResult:
+    """Photo estimates as points (midpoints) with their ranges; no trend or weekly rate."""
+    start = None if days is None else today - timedelta(days=days)
+    rows = conn.execute(
+        "select distinct on (taken_on) taken_on, low_pct, estimate_pct, high_pct"
+        " from ai_body_fat_estimates where user_id = %s and (%s::date is null or taken_on >= %s)"
+        " order by taken_on, created_at desc",
+        (user_id, start, start),
+    ).fetchall()
+    points = [Point(r["taken_on"], float(r["estimate_pct"])) for r in rows]
+    values = [p.value for p in points]
+    return SeriesResult(
+        metric=spec.key,
+        label=spec.label,
+        unit=spec.unit,
+        points=points,
+        trend=[],
+        change=None,
+        weekly_rate=None,
+        min=min(values) if values else None,
+        max=max(values) if values else None,
+        latest=values[-1] if values else None,
+        band=[(r["taken_on"], float(r["low_pct"]), float(r["high_pct"])) for r in rows],
+    )

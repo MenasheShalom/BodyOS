@@ -3,7 +3,7 @@ import { TrendChart } from "../components/charts/TrendChart";
 import { EmptyState, ErrorState, Spinner } from "../components/EmptyState";
 import { bmiZone, healthyWeightRange } from "../lib/bmi";
 import { formatChange, formatValue } from "../lib/format";
-import { SERIES_METRICS } from "../lib/metrics";
+import { SERIES_METRICS, trendKind } from "../lib/metrics";
 import { goals, useProfile, useSeries } from "../lib/queries";
 import type { RangeKey } from "../lib/types";
 
@@ -61,6 +61,8 @@ export function Trends() {
     goalList.data?.find((g) => g.metric === metric && g.status === "active")?.target_value ??
     null;
   const s = primary.data;
+  // AI photo estimates are separate ranges with no trend line, so one is worth showing.
+  const minPoints = trendKind(metric) === "none" ? 1 : 2;
 
   return (
     <section className="space-y-4">
@@ -111,13 +113,17 @@ export function Trends() {
       {primary.isError && (
         <ErrorState message={primary.error.message} onRetry={() => void primary.refetch()} />
       )}
-      {s && s.points.length < 2 && (
+      {s && s.points.length < minPoints && (
         <EmptyState
           title="Not enough data yet"
-          body={`Log at least 2 ${s.label.toLowerCase()} readings in this range to see a trend.`}
+          body={
+            minPoints === 1
+              ? `No ${s.label.toLowerCase()} estimates in this range yet.`
+              : `Log at least 2 ${s.label.toLowerCase()} readings in this range to see a trend.`
+          }
         />
       )}
-      {s && s.points.length >= 2 && (
+      {s && s.points.length >= minPoints && (
         <>
           <div className="rounded-2xl bg-surface p-4">
             <TrendChart
