@@ -1,6 +1,7 @@
 """Gemini adapter (official `google-genai` SDK). Imported only when AI_PROVIDER=google."""
 
 import time
+from collections.abc import Callable
 from typing import Any
 
 from app.ai.provider import (
@@ -15,6 +16,8 @@ from app.ai.provider import (
     parse_output,
     strict_json_schema,
 )
+
+RETRY_DELAY_S = 2.0
 
 REFUSED = {
     "SAFETY",
@@ -37,6 +40,7 @@ class GoogleProvider:
         effort: str = "medium",
         timeout_s: float = 60,
         client: Any = None,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         if not model:
             # Gemini model names change too often for a safe built-in default.
@@ -55,6 +59,7 @@ class GoogleProvider:
         self._effort = effort
         self._timeout_ms = int(timeout_s * 1000)
         self._thinking_supported = True
+        self._sleep = sleep
 
     def _config(self, request: AIRequest[T]) -> Any:
         from google.genai import types
@@ -90,14 +95,14 @@ class GoogleProvider:
             if e.code == 404:
                 raise AIConfigError(self._unknown_model_message()) from e
             if e.code == 429:
-                raise AIUnavailable(e.message or "rate limited") from e
+                raise AIUnavailable(f"Google rate limit or quota: {e.message}") from e
             if e.code == 400 and self._thinking_supported and "thinking" in str(e.message).lower():
                 # Older models don't take a thinking level; remember and retry without it.
                 self._thinking_supported = False
                 return self._call(request)
             raise AIInvalidOutput(f"Google rejected the request: {e.message}") from e
         except errors.ServerError as e:
-            raise AIUnavailable(e.message or "server error") from e
+            raise AIUnavailable(f"Google error {e.code}: {e.message or 'server error'}") from e
         except (TimeoutError, OSError) as e:
             raise AIUnavailable(str(e)) from e
 
@@ -117,7 +122,12 @@ class GoogleProvider:
 
     def generate(self, request: AIRequest[T]) -> AIResult[T]:
         started = time.monotonic()
-        response = self._call(request)
+        try:
+            response = self._call(request)
+        except AIUnavailable:
+            # Gemini often answers "overloaded" for a moment; one retry usually gets through.
+            self._sleep(RETRY_DELAY_S)
+            response = self._call(request)
         latency_ms = int((time.monotonic() - started) * 1000)
 
         feedback = getattr(response, "prompt_feedback", None)

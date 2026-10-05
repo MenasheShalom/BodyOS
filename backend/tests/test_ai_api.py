@@ -234,3 +234,11 @@ def test_misconfiguration_reason_is_shown(client, headers, ai, profile, monkeypa
         " Gemini has no model called 'x' (check AI_MODEL)",
         "code": "ai_misconfigured",
     }
+
+
+def test_unavailable_reason_is_shown(client, headers, ai, profile) -> None:
+    res = photo(client, headers, hint="__unavailable__")
+    assert res.json() == {
+        "detail": "AI is unavailable right now (fake outage). Try again in a minute.",
+        "code": "ai_unavailable",
+    }

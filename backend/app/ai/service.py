@@ -129,7 +129,8 @@ def run(
         except AIRefused:
             _record(conn, user_id, provider, request, now, "refused")
             raise
-        except AIUnavailable:
+        except AIUnavailable as e:
+            logger.warning("AI provider unavailable provider=%s: %s", provider.name, e)
             _record(conn, user_id, provider, request, now, "unavailable")
             raise
         except AIConfigError as e:
@@ -157,7 +158,13 @@ def error_body(e: Exception) -> tuple[int, dict[str, Any]]:
             "code": "ai_misconfigured",
         }
     if isinstance(e, AIUnavailable):
-        return 502, {"detail": "AI is unavailable right now, try again", "code": "ai_unavailable"}
+        reason = str(e)[:240]
+        return 502, {
+            "detail": f"AI is unavailable right now ({reason}). Try again in a minute."
+            if reason
+            else "AI is unavailable right now. Try again in a minute.",
+            "code": "ai_unavailable",
+        }
     if isinstance(e, AIRefused):
         return 422, {"detail": "This couldn't be analysed", "code": "ai_refused"}
     if isinstance(e, AIInvalidOutput):
