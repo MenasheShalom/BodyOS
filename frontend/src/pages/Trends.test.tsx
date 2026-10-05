@@ -60,6 +60,19 @@ describe("Trends", () => {
     expect(screen.getByText("Not enough data yet")).toBeInTheDocument();
   });
 
+  it("shows a single AI photo estimate", () => {
+    useSeries.mockReturnValue({
+      data: { ...full, metric: "ai_body_fat_pct", points: [full.points[0]], trend: [] },
+      isPending: false,
+    });
+    render(
+      <MemoryRouter initialEntries={["/trends?metric=ai_body_fat_pct"]}>
+        <Trends />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId("chart")).toBeInTheDocument();
+  });
+
   it("explains the BMI zone and the healthy weight for your height", () => {
     useSeries.mockReturnValue({
       data: { ...full, metric: "bmi", label: "BMI", unit: "", latest: 26.2 },
