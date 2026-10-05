@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -58,3 +58,32 @@ class BodyFatEstimateOut(BaseModel):
     high_pct: float
     notes: str
     created_at: datetime
+
+
+class ReportSectionOut(BaseModel):
+    title: str
+    body: str
+    tone: Literal["good", "watch", "neutral"]
+
+
+class WeeklyReportOut(BaseModel):
+    week_start: date
+    facts: dict[str, Any]
+    summary: str
+    sections: list[ReportSectionOut]
+    focus: list[str]
+    fallback: bool  # written from a plain template because the AI text didn't check out
+    can_regenerate: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ReportListItemOut(BaseModel):
+    week_start: date
+    summary: str
+    fallback: bool
+
+
+class ReportsOut(BaseModel):
+    current_week_start: date  # the latest check-in day, on or before today
+    reports: list[ReportListItemOut]
