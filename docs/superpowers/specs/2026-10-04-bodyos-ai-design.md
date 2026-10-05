@@ -177,7 +177,7 @@ It appears on Trends as the metric `ai_body_fat_pct` (source `ai`). The chart sh
   - The backend checks ownership and same-day.
   - It reads the images from storage and sends them with sex, age, height and the weight trend for that day.
   - Returns `{low_pct, high_pct, estimate_pct, notes}`.
-  - Validation: the range must be ≤ 8 points wide (otherwise retry once, then clamp to estimate ± 4), and values must stay within 3–60.
+  - Validation: the range is put in order and narrowed to estimate ± 4 if it's wider than 8 points (no retry, since a wide range is still a usable answer), and values must stay within 3–60.
 - **Display:**
   - On the photo set, a caption such as "AI estimate: 17–21% (rough)".
   - Next to it, the same day's scale and Navy values, if any.

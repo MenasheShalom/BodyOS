@@ -97,7 +97,9 @@ Nutrient averages use only the logged foods that report each nutrient. A nutrien
 
 ## AI features
 
-Logging food from a photo is the first AI feature. A weekly report, body-fat estimates from progress photos, and meal plans follow. The backend calls the AI through one small interface, so the vendor is a configuration choice:
+AI features: logging food from a photo, a written weekly report (More → Weekly reports), and a rough body-fat range from a day's progress photos (Photos, shown as ranges on Trends). Meal plans follow.
+
+The weekly report's numbers are computed by the app (trends, intake against targets, burn, low nutrients, goal projections) and sent to the model as facts; any number in the AI's text that isn't in the facts gets one retry and then a plain template report instead. The backend calls the AI through one small interface, so the vendor is a configuration choice:
 
 | `AI_PROVIDER` | Also set | Notes |
 |---|---|---|
@@ -117,7 +119,7 @@ AI_PROVIDER=google GOOGLE_API_KEY=... AI_MODEL=... python scripts/ai_smoke.py me
 ```
 
 **Privacy:**
-- Nothing is sent to the AI unless you start it: you choose the photo, and the first use shows a notice naming the provider.
+- Nothing is sent to the AI unless you start it: you choose the food photo, open the week's report, or tap "Estimate body fat" on a day of progress photos. The first use of each feature shows a notice naming the provider and what is sent.
 - Food photos are resized in the browser (which also drops location metadata), sent to the provider, and never stored by BodyOS.
 - AI answers are drafts: nothing is logged until you review it and tap Log, and estimates are tagged "AI estimate" in the day view.
 - AI can be switched off per user in Settings.
