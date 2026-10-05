@@ -217,3 +217,20 @@ def test_implausible_items_are_dropped(client, headers, ai, profile, monkeypatch
 
 def test_now_fixture_month() -> None:
     assert FIXED_NOW.month == 3
+
+
+def test_misconfiguration_reason_is_shown(client, headers, ai, profile, monkeypatch) -> None:
+    from app.ai.fake import FakeProvider
+    from app.ai.provider import AIConfigError
+
+    def broken(self: FakeProvider, request: Any) -> Any:
+        raise AIConfigError("Gemini has no model called 'x' (check AI_MODEL)")
+
+    monkeypatch.setattr(FakeProvider, "generate", broken)
+    res = photo(client, headers)
+    assert res.status_code == 503
+    assert res.json() == {
+        "detail": "AI isn't set up correctly on the server:"
+        " Gemini has no model called 'x' (check AI_MODEL)",
+        "code": "ai_misconfigured",
+    }

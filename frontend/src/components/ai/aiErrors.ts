@@ -21,7 +21,7 @@ export function aiErrorMessage(e: unknown): string {
     case "ai_disabled":
       return "AI features are switched off. You can turn them on in Settings.";
     case "ai_misconfigured":
-      return "AI isn't set up correctly on the server.";
+      return e.message; // names the reason, e.g. an unknown model in AI_MODEL
     default:
       return e.message;
   }

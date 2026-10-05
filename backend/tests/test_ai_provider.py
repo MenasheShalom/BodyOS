@@ -265,3 +265,36 @@ def test_missing_sdk_is_a_config_error(monkeypatch) -> None:
         GoogleProvider("key", "m")
     with pytest.raises(AIConfigError, match="anthropic"):
         AnthropicProvider("key")
+
+
+def test_unknown_gemini_model_suggests_available_ones() -> None:
+    missing = genai_errors.ClientError(
+        404, {"error": {"code": 404, "message": "models/x is not found", "status": "NOT_FOUND"}}
+    )
+    stub = StubGemini([missing])
+    stub.models.list = lambda: [
+        SimpleNamespace(name="models/gemini-test-flash", supported_actions=["generateContent"]),
+        SimpleNamespace(name="models/text-embedding", supported_actions=["embedContent"]),
+        SimpleNamespace(name="models/gemini-test-pro", supported_actions=["generateContent"]),
+    ]
+    with pytest.raises(AIConfigError) as e:
+        GoogleProvider(None, "gemini-typo", client=stub).generate(_request())
+    assert str(e.value) == (
+        "Gemini has no model called 'gemini-typo' (check AI_MODEL)."
+        " Available models include: gemini-test-flash"
+    )
+
+
+def test_invalid_google_key_is_a_config_error() -> None:
+    bad_key = genai_errors.ClientError(
+        400,
+        {
+            "error": {
+                "code": 400,
+                "message": "API key not valid. Please pass a valid API key.",
+                "status": "INVALID_ARGUMENT",
+            }
+        },
+    )
+    with pytest.raises(AIConfigError, match="API key not valid"):
+        GoogleProvider(None, "m", client=StubGemini([bad_key])).generate(_request())
