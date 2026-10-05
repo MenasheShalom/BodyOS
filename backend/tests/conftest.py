@@ -23,6 +23,8 @@ TEST_DB_URL = os.environ.get(
     "TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/bodyos_test"
 )
 TABLES = [
+    "ai_reports",
+    "ai_body_fat_estimates",
     "ai_usage",
     "ai_settings",
     "nutrition_day_flags",
@@ -142,9 +144,31 @@ class FakeStorage:
         self.objects.discard(path)
         self.deleted.append(path)
 
+    def download(self, path: str) -> bytes:
+        if path not in self.objects:
+            raise FileNotFoundError(path)
+        return b"\xff\xd8\xff\xe0" + path.encode()  # JPEG magic bytes
+
 
 @pytest.fixture
 def storage(app_under_test: Any) -> FakeStorage:
     fake = FakeStorage()
     app_under_test.dependency_overrides[get_storage] = lambda: fake
     return fake
+
+
+AI_LIMIT = 3
+
+
+@pytest.fixture
+def ai(app_under_test: Any, db: str) -> None:
+    """Runs the app with the fake AI provider and a small monthly limit."""
+    from app.ai.factory import _build
+
+    _build.cache_clear()
+    app_under_test.dependency_overrides[get_settings] = lambda: Settings(
+        database_url=db,
+        supabase_jwt_secret=JWT_SECRET,
+        ai_provider="fake",
+        ai_monthly_request_limit=AI_LIMIT,
+    )

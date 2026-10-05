@@ -11,6 +11,7 @@ from app.ai.service import AIDisabled, AILimit, error_body
 from app.config import get_settings
 from app.routers import (
     ai,
+    ai_insight,
     body_entries,
     dashboard,
     favourites,
@@ -84,6 +85,7 @@ def create_app() -> FastAPI:
     app.include_router(recipes.router)
     app.include_router(saved_meals.router)
     app.include_router(ai.router)
+    app.include_router(ai_insight.router)
 
     return app
 

@@ -70,6 +70,17 @@ class AIProvider(Protocol):
     def generate(self, request: AIRequest[T]) -> AIResult[T]: ...
 
 
+def sniff_media_type(data: bytes) -> MediaType | None:
+    """The image type from the file's first bytes, not its name or declared type."""
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
 def parse_output(schema: type[T], text: str) -> T:
     try:
         return schema.model_validate_json(text)

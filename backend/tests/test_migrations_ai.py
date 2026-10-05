@@ -58,3 +58,38 @@ def test_food_log_origin(db, make_user) -> None:
         assert row == ("ai_photo",)
         with pytest.raises(psycopg.errors.CheckViolation):
             conn.execute(sql.format(col=", origin", val=", 'robot'"), (a, kcal))
+
+
+# --- Phase 2: reports and body-fat estimates ---------------------------------------------
+
+REPORT = (
+    "insert into ai_reports (user_id, week_start, facts, summary, sections, provider, model,"
+    " prompt_version) values (%s, '2026-10-04', '{}', 'Good week', '[]', 'fake', 'm', 'v')"
+)
+ESTIMATE = (
+    "insert into ai_body_fat_estimates (user_id, taken_on, photo_ids, low_pct, estimate_pct,"
+    " high_pct, provider, model, prompt_version)"
+    " values (%s, '2026-10-04', %s, %s, %s, %s, 'fake', 'm', 'v')"
+)
+
+
+def test_one_report_per_week_and_private(db, make_user) -> None:
+    a, b = make_user(), make_user()
+    with psycopg.connect(db) as conn:
+        conn.execute(REPORT, (a,))
+        with pytest.raises(psycopg.errors.UniqueViolation):
+            conn.execute(REPORT, (a,))
+    with psycopg.connect(db) as conn:
+        _as_user(conn, b)
+        assert conn.execute("select * from ai_reports").fetchall() == []
+
+
+def test_body_fat_range_must_be_ordered(db, make_user) -> None:
+    a = make_user()
+    photo = [uuid.uuid4()]
+    with psycopg.connect(db) as conn:
+        conn.execute(ESTIMATE, (a, photo, 17, 19, 21))
+        with pytest.raises(psycopg.errors.CheckViolation):
+            conn.execute(ESTIMATE, (a, photo, 20, 19, 21))
+    with psycopg.connect(db) as conn, pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute(ESTIMATE, (a, [], 17, 19, 21))
