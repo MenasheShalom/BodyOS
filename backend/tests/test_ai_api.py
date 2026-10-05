@@ -153,13 +153,18 @@ def test_user_can_switch_ai_off(client, headers, ai, profile) -> None:
     assert client.get("/ai/settings", headers=headers).json() == {
         "enabled": True,
         "acknowledged": [],
+        "plan_preferences": "",
     }
     res = client.put(
         "/ai/settings",
         json={"enabled": False, "acknowledged": ["food_photo", "food_photo"]},
         headers=headers,
     )
-    assert res.json() == {"enabled": False, "acknowledged": ["food_photo"]}
+    assert res.json() == {
+        "enabled": False,
+        "acknowledged": ["food_photo"],
+        "plan_preferences": "",
+    }
     assert client.get("/ai/status", headers=headers).json()["enabled"] is False
     assert photo(client, headers).json()["code"] == "ai_disabled"
     bad = client.put("/ai/settings", json={"acknowledged": ["chat"]}, headers=headers)

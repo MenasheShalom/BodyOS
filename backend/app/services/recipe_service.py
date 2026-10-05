@@ -9,7 +9,7 @@ from app.db import Conn
 from app.nutrition_schemas import RecipeIn, RecipeItemOut, RecipeOut
 from app.services.food_service import food_in_use, visible_food
 
-RECIPE_COLUMNS = "id, name, servings, cooked_weight_g, note"
+RECIPE_COLUMNS = "id, name, servings, cooked_weight_g, note, instructions"
 
 
 def _ingredients(conn: Conn, user_id: UUID, body: RecipeIn) -> list[dict[str, Any]]:
@@ -49,6 +49,7 @@ def recipe_out(conn: Conn, recipe: dict[str, Any]) -> RecipeOut:
         servings=servings,
         cooked_weight_g=cooked,
         note=recipe["note"],
+        instructions=recipe["instructions"],
         food_id=food["id"],
         items=[
             RecipeItemOut(
@@ -75,17 +76,17 @@ def save_recipe(
 ) -> RecipeOut:
     """Create or replace a recipe and refresh the food it is logged through."""
     foods = _ingredients(conn, user_id, body)
-    values = (body.name, body.servings, body.cooked_weight_g, body.note)
+    values = (body.name, body.servings, body.cooked_weight_g, body.note, body.instructions)
     if recipe_id is None:
         row = conn.execute(
-            "insert into recipes (user_id, name, servings, cooked_weight_g, note)"
-            f" values (%s, %s, %s, %s, %s) returning {RECIPE_COLUMNS}",
+            "insert into recipes (user_id, name, servings, cooked_weight_g, note, instructions)"
+            f" values (%s, %s, %s, %s, %s, %s) returning {RECIPE_COLUMNS}",
             (user_id, *values),
         ).fetchone()
     else:
         row = conn.execute(
-            "update recipes set name = %s, servings = %s, cooked_weight_g = %s, note = %s"
-            f" where id = %s and user_id = %s and not archived returning {RECIPE_COLUMNS}",
+            "update recipes set name = %s, servings = %s, cooked_weight_g = %s, note = %s,"
+            f" instructions = %s where id = %s and user_id = %s and not archived returning {RECIPE_COLUMNS}",
             (*values, recipe_id, user_id),
         ).fetchone()
         if row is None:

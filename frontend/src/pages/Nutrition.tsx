@@ -6,6 +6,7 @@ const LINKS = [
   { to: "/nutrition/foods", label: "My foods", body: "Foods you created, edit or delete" },
   { to: "/nutrition/recipes", label: "Recipes", body: "Home cooking, logged by the serving" },
   { to: "/nutrition/meals", label: "Saved meals", body: "Meals you log often, in one go" },
+  { to: "/nutrition/plan", label: "Plan with AI", body: "A day of meals, or recipes from groceries" },
 ];
 
 export function Nutrition() {

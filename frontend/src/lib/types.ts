@@ -247,6 +247,8 @@ export type RecipeInput = {
   servings: number;
   cooked_weight_g: number | null;
   note: string | null;
+  /** Cooking steps, one per line. */
+  instructions?: string | null;
   items: RecipeItemInput[];
 };
 export type Recipe = Omit<RecipeInput, "items"> & {
@@ -335,7 +337,12 @@ export type AiStatus = {
   limit: number;
   resets_on: string;
 };
-export type AiSettings = { enabled: boolean; acknowledged: AiFeature[] };
+export type AiSettings = {
+  enabled: boolean;
+  acknowledged: AiFeature[];
+  /** Remembered from the last meal plan request. */
+  plan_preferences?: string;
+};
 export type FoodPhotoItem = {
   name: string;
   grams: number;
@@ -377,3 +384,40 @@ export type BodyFatEstimate = {
   notes: string;
   created_at: string;
 };
+
+export type SavedMealInput = {
+  name: string;
+  items: { food_id: string; grams: number }[];
+};
+
+export type MacroKey = "energy_kcal" | "protein_g" | "carbs_g" | "fat_g";
+export type ResolvedIngredient = {
+  /** As the AI wrote it. */
+  name: string;
+  search_query: string;
+  grams: number;
+  /** null when no food matched; the user swaps it by hand. */
+  food: (Food & { id: string }) | null;
+  nutrients: Nutrients;
+};
+export type MealPlanInput = { meals: number; rest_of_today: boolean; preferences: string };
+export type MealPlan = {
+  /** What the plan aimed at: the day's targets, or what's left of them today. */
+  targets: Record<MacroKey, number>;
+  rest_of_today: boolean;
+  meals: { meal: Meal; title: string; ingredients: ResolvedIngredient[]; totals: Nutrients }[];
+  totals: Nutrients;
+  unresolved: number;
+  notes: string;
+};
+export type GroceriesInput = { groceries: string; servings: number | null; staples: boolean };
+export type RecipeIdea = {
+  name: string;
+  servings: number;
+  minutes: number;
+  ingredients: ResolvedIngredient[];
+  steps: string[];
+  totals: Nutrients;
+  per_serving: Nutrients;
+};
+export type RecipeIdeas = { recipes: RecipeIdea[]; unresolved: number; notes: string };

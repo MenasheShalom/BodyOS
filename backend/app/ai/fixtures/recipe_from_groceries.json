@@ -1,0 +1,18 @@
+{
+  "recipes": [
+    {"name": "Chicken avocado salad", "servings": 2, "minutes": 15, "ingredients": [
+      {"name": "Roast chicken breast", "search_query": "chicken", "grams": 300},
+      {"name": "Avocado", "search_query": "avocados", "grams": 150},
+      {"name": "Lemon juice", "search_query": "lemon juice", "grams": 15}
+    ], "steps": [
+      "Slice the chicken.",
+      "Cube the avocado and toss with the chicken.",
+      "Dress with lemon juice and season."
+    ]},
+    {"name": "Hummus chicken bowl", "servings": 2, "minutes": 10, "ingredients": [
+      {"name": "Hummus", "search_query": "hummus", "grams": 200},
+      {"name": "Roast chicken breast", "search_query": "chicken", "grams": 250}
+    ], "steps": ["Spread the hummus in two bowls.", "Top with sliced chicken."]}
+  ],
+  "notes": "Both use the cooked chicken you have."
+}

@@ -2,8 +2,9 @@ import { ApiError } from "../../lib/api";
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" });
 
-/** A user-facing message for a failed AI request. */
-export function aiErrorMessage(e: unknown): string {
+/** A user-facing message for a failed AI request. `about` is what was sent: a food photo,
+ * or text such as targets and groceries. */
+export function aiErrorMessage(e: unknown, about: "photo" | "text" = "photo"): string {
   if (!(e instanceof ApiError)) return "Something went wrong. Try again.";
   switch (e.code) {
     case "ai_limit": {
@@ -13,9 +14,11 @@ export function aiErrorMessage(e: unknown): string {
         : "You've used this month's AI requests.";
     }
     case "ai_refused":
-      return "This photo couldn't be analysed. Try another photo, or log the food by hand.";
+      return about === "photo"
+        ? "This photo couldn't be analysed. Try another photo, or log the food by hand."
+        : "The AI declined this request. Try different wording.";
     case "ai_unavailable":
-      return `${e.message} You can also log the food by hand.`;
+      return about === "photo" ? `${e.message} You can also log the food by hand.` : e.message;
     case "ai_invalid_output":
       return "Couldn't read the AI's answer. Try again.";
     case "ai_disabled":

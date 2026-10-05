@@ -17,6 +17,7 @@ import { SavedMeals } from "./pages/SavedMeals";
 import { Onboarding } from "./pages/Onboarding";
 import { PhotoCompare } from "./pages/PhotoCompare";
 import { Photos } from "./pages/Photos";
+import { PlanWithAi } from "./pages/PlanWithAi";
 import { ReportDetail } from "./pages/ReportDetail";
 import { Reports } from "./pages/Reports";
 import { Settings } from "./pages/Settings";
@@ -56,6 +57,7 @@ export function App() {
           <Route path="nutrition/recipes/new" element={<RecipeEditor />} />
           <Route path="nutrition/recipes/:id" element={<RecipeEditor />} />
           <Route path="nutrition/meals" element={<SavedMeals />} />
+          <Route path="nutrition/plan" element={<PlanWithAi />} />
           <Route path="nutrition/foods/new" element={<FoodEditor />} />
           <Route path="nutrition/foods/:id" element={<FoodEditor />} />
         </Route>
