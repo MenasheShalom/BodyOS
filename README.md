@@ -97,7 +97,9 @@ Nutrient averages use only the logged foods that report each nutrient. A nutrien
 
 ## AI features
 
-AI features: logging food from a photo, a written weekly report (More → Weekly reports), and a rough body-fat range from a day's progress photos (Photos, shown as ranges on Trends). Meal plans follow.
+AI features: logging food from a photo, a written weekly report (More → Weekly reports), a rough body-fat range from a day's progress photos (Photos, shown as ranges on Trends), and Nutrition → **Plan with AI**: a day of meals (or the rest of today) aimed at your targets, or recipe ideas from the groceries you have.
+
+In plans and recipes the AI only chooses ingredients and amounts. Each ingredient is matched to a real food (your own and cached foods first, then USDA, then a few Open Food Facts lookups), so the calories and macros come from the food database. Ingredients with no match are flagged and not counted until you pick a food. From there you can swap foods, change amounts, log a meal, save it as a saved meal, or save a recipe with its steps. Your planning preferences (for example "kosher, no fish") are remembered.
 
 The weekly report's numbers are computed by the app (trends, intake against targets, burn, low nutrients, goal projections) and sent to the model as facts; any number in the AI's text that isn't in the facts gets one retry and then a plain template report instead. The backend calls the AI through one small interface, so the vendor is a configuration choice:
 
@@ -119,7 +121,7 @@ AI_PROVIDER=google GOOGLE_API_KEY=... AI_MODEL=... python scripts/ai_smoke.py me
 ```
 
 **Privacy:**
-- Nothing is sent to the AI unless you start it: you choose the food photo, open the week's report, or tap "Estimate body fat" on a day of progress photos. The first use of each feature shows a notice naming the provider and what is sent.
+- Nothing is sent to the AI unless you start it: you choose the food photo, open the week's report, tap "Estimate body fat" on a day of progress photos, or ask for a meal plan (your targets and preferences are sent) or recipes (your grocery list is sent). The first use of each feature shows a notice naming the provider and what is sent.
 - Food photos are resized in the browser (which also drops location metadata), sent to the provider, and never stored by BodyOS.
 - AI answers are drafts: nothing is logged until you review it and tap Log, and estimates are tagged "AI estimate" in the day view.
 - AI can be switched off per user in Settings.

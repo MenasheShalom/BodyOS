@@ -193,9 +193,10 @@ It appears on Trends as the metric `ai_body_fat_pct` (source `ai`). The chart sh
     - number of meals (2–5)
     - preferences (free text, remembered: dislikes, cuisine, kosher, budget)
   - The model returns meals made of ingredients `{name, search_query, grams}`.
-  - **Resolution:** the backend resolves each ingredient with the existing food search (local custom foods, then USDA generic, then OFF). It takes the top plausible match and computes the nutrients from it.
+  - **Resolution:** the backend resolves each ingredient: the user's own and cached foods (every word of the search term in the name), then USDA generic foods in parallel, then OFF for at most three leftovers (OFF is rate limited). It takes the first match that reports calories and computes the nutrients from it. Matched external foods are cached, so they can be logged directly.
   - **Display:** per-meal and day totals against targets, unresolved ingredients flagged, and an ingredient swap through the normal search.
-  - **Actions:** "Save meal" (to saved meals), "Log this meal" (food log entries, `origin='ai_plan'`), and "Regenerate".
+  - **Actions:** "Save meal" (to saved meals), "Log this meal" (food log entries for today, `origin='ai_plan'`), and "Plan again". Ingredients without a food are left out of both.
+  - **Preferences** are stored in `ai_settings.plan_preferences` (≤500 chars) on every plan request, and returned by `GET /ai/settings`.
 - **Recipes from groceries:**
   - Input: groceries as text (one per line, or comma-separated), optional servings, and "use only these" vs "staples allowed" (oil, salt, spices).
   - The model returns 1–3 recipes with ingredients, servings and steps. Resolution and totals work the same way, per serving.
