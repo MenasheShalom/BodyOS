@@ -6,11 +6,14 @@ import { providerName } from "./privacy";
 /** Shown once per feature, before anything is sent to the AI provider. */
 export function PrivacyNotice({
   what,
+  detail = "Food photos aren't stored by BodyOS. AI estimates can be wrong, so check the amounts.",
   onContinue,
   onCancel,
 }: {
   /** What gets sent, e.g. "your photo and any note you add". */
   what: string;
+  /** What the user should know about this feature's results. */
+  detail?: string;
   onContinue: () => void | Promise<unknown>;
   onCancel: () => void;
 }) {
@@ -24,8 +27,7 @@ export function PrivacyNotice({
           is saved or logged until you check the result and confirm it.
         </p>
         <p className="text-muted">
-          Food photos aren't stored by BodyOS. AI estimates can be wrong, so check the amounts. You
-          can switch AI features off in Settings.
+          {detail} You can switch AI features off in Settings.
         </p>
         <div className="flex gap-2">
           <button

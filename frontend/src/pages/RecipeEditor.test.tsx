@@ -68,6 +68,7 @@ describe("RecipeEditor", () => {
     expect(preview).toHaveTextContent("Per serving (125 g)");
     expect(preview).toHaveTextContent("don't report it: Iron");
 
+    await userEvent.type(screen.getByLabelText("Steps (optional)"), "1. Simmer.");
     await userEvent.click(screen.getByRole("button", { name: "Save recipe" }));
     expect(save).toHaveBeenCalledWith({
       id: undefined,
@@ -76,6 +77,7 @@ describe("RecipeEditor", () => {
         servings: 4,
         cooked_weight_g: null,
         note: null,
+        instructions: "1. Simmer.",
         items: [
           { food_id: "lentils", grams: 400 },
           { food_id: "onion", grams: 100 },

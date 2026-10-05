@@ -45,6 +45,11 @@ import type {
   BodyFatEstimate,
   ReportList,
   WeeklyReport,
+  GroceriesInput,
+  MealPlan,
+  MealPlanInput,
+  RecipeIdeas,
+  SavedMealInput,
 } from "./types";
 
 export const qk = {
@@ -406,6 +411,15 @@ export function useSaveMealFromLog() {
   });
 }
 
+export function useCreateSavedMeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SavedMealInput) =>
+      api<SavedMeal>("/saved-meals", { method: "POST", json: body }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.savedMeals }),
+  });
+}
+
 export function useDeleteSavedMeal() {
   const qc = useQueryClient();
   return useMutation({
@@ -569,5 +583,34 @@ export function useDeleteBodyFat() {
   return useMutation({
     mutationFn: (id: string) => api<void>(`/ai/body-fat/${id}`, { method: "DELETE" }),
     onSuccess: () => invalidateBodyFat(qc),
+  });
+}
+
+// --- AI phase 3: meal plans and recipes from groceries ---------------------------------------
+
+export function useMealPlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: MealPlanInput) =>
+      api<MealPlan>("/ai/meal-plan", { method: "POST", json: body }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: qk.aiStatus });
+      // the preferences are remembered server-side
+      void qc.invalidateQueries({ queryKey: qk.aiSettings });
+      // ingredients found on USDA or OFF are now cached foods
+      void qc.invalidateQueries({ queryKey: ["food-search"] });
+    },
+  });
+}
+
+export function useRecipeIdeas() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: GroceriesInput) =>
+      api<RecipeIdeas>("/ai/recipes-from-groceries", { method: "POST", json: body }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: qk.aiStatus });
+      void qc.invalidateQueries({ queryKey: ["food-search"] });
+    },
   });
 }

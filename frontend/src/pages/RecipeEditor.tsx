@@ -46,6 +46,7 @@ function Editor({ recipe }: { recipe?: Recipe }) {
   const [cooked, setCooked] = useState(
     recipe?.cooked_weight_g ? String(recipe.cooked_weight_g) : "",
   );
+  const [instructions, setInstructions] = useState(recipe?.instructions ?? "");
   const [items, setItems] = useState<Item[]>(recipe ? itemsFrom(recipe) : []);
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +68,7 @@ function Editor({ recipe }: { recipe?: Recipe }) {
     if (valid.some((i) => i.grams < 0.1 || i.grams > 5000)) {
       return setError("Each ingredient needs a weight up to 5000 g.");
     }
+    if (instructions.length > 4000) return setError("Keep the steps under 4000 characters.");
     if (cooked.trim() && (cookedN == null || cookedN < 1 || cookedN > 20000)) {
       return setError("Cooked weight must be between 1 and 20000 g.");
     }
@@ -78,6 +80,7 @@ function Editor({ recipe }: { recipe?: Recipe }) {
           servings: servingsN,
           cooked_weight_g: cookedN,
           note: recipe?.note ?? null,
+          instructions: instructions.trim() || null,
           items: items.map((i, n) => ({ food_id: i.food_id, grams: valid[n].grams })),
         },
       });
@@ -147,6 +150,18 @@ function Editor({ recipe }: { recipe?: Recipe }) {
           <Plus size={16} /> Add ingredient
         </button>
       </section>
+
+      <label className="block rounded-2xl bg-surface p-4">
+        <span className="mb-2 block font-medium">Steps (optional)</span>
+        <textarea
+          dir="auto"
+          rows={5}
+          maxLength={4000}
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          className="w-full rounded-xl border border-border bg-surface px-3 py-2"
+        />
+      </label>
 
       {items.length > 0 && (
         <section aria-label="Per serving" className="rounded-2xl bg-surface p-4 text-sm">
