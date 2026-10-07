@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +26,23 @@ class Settings(BaseSettings):
     ai_timeout_s: float = 60
     anthropic_api_key: str | None = None
     google_api_key: str | None = None
+    # MCP server (for Claude and other AI assistants). The public URLs are used in OAuth
+    # metadata and redirects. Render sets RENDER_EXTERNAL_URL for the API service; the app URL
+    # falls back to the first CORS origin, which is the frontend.
+    public_api_url: str = Field(
+        default="http://localhost:8000",
+        validation_alias=AliasChoices("public_api_url", "render_external_url"),
+    )
+    app_url: str | None = None
+    mcp_enabled: bool = True
+
+    @property
+    def frontend_url(self) -> str:
+        return (self.app_url or self.cors_origins[0]).rstrip("/")
+
+    @property
+    def api_url(self) -> str:
+        return self.public_api_url.rstrip("/")
 
     @field_validator("ai_provider", "ai_effort", mode="before")
     @classmethod

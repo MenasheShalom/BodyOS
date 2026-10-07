@@ -19,6 +19,8 @@ dependencies = [
   # AI vendor SDKs; each is imported only when AI_PROVIDER selects it.
   "anthropic>=1.11",
   "google-genai>=2.28",
+  # MCP server and its OAuth endpoints, for connecting Claude and other AI assistants.
+  "mcp>=2.3,<3",
 ]
 
 [project.optional-dependencies]
