@@ -15,4 +15,17 @@ export default async function globalSetup() {
   });
   if (!res.ok) throw new Error(`Could not create e2e user: ${res.status} ${await res.text()}`);
   writeFileSync(new URL("./.user.json", import.meta.url), JSON.stringify({ email, password }));
+  // Trophy celebrations cover the screen; specs run with them off unless they opt in.
+  writeFileSync(
+    new URL("./.storage.json", import.meta.url),
+    JSON.stringify({
+      cookies: [],
+      origins: [
+        {
+          origin: "http://localhost:5173",
+          localStorage: [{ name: "bodyos.celebrations", value: "off" }],
+        },
+      ],
+    }),
+  );
 }

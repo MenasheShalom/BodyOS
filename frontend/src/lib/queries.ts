@@ -50,6 +50,7 @@ import type {
   MealPlanInput,
   RecipeIdeas,
   SavedMealInput,
+  Achievement,
 } from "./types";
 
 export const qk = {
@@ -79,6 +80,7 @@ export const qk = {
   report: (week: string) => ["ai-report", week] as const,
   bodyFat: ["ai-body-fat"] as const,
   aiSettings: ["ai-settings"] as const,
+  achievements: ["achievements"] as const,
   estimate: (p: EstimateParams) =>
     ["nutrition-estimate", p.mode, p.activity_level, p.deficit_pct, p.protein_g_per_kg] as const,
 };
@@ -91,12 +93,14 @@ export function invalidateNutrition(qc: QueryClient): void {
     void qc.invalidateQueries({ queryKey: key });
   }
   void qc.invalidateQueries({ queryKey: qk.dashboard });
+  void qc.invalidateQueries({ queryKey: qk.achievements });
 }
 
 export function invalidateDerived(qc: QueryClient): void {
   void qc.invalidateQueries({ queryKey: ["series"] });
   void qc.invalidateQueries({ queryKey: qk.dashboard });
   void qc.invalidateQueries({ queryKey: qk.goals });
+  void qc.invalidateQueries({ queryKey: qk.achievements });
 }
 
 export function useProfile() {
@@ -316,6 +320,7 @@ export function useSaveTargets() {
       api<Targets>("/nutrition/targets", { method: "POST", json: body }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.targets });
+      void qc.invalidateQueries({ queryKey: qk.achievements });
       invalidateNutrition(qc);
     },
   });
@@ -383,6 +388,7 @@ export function useSaveRecipe() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.recipes });
       void qc.invalidateQueries({ queryKey: ["food-search"] });
+      void qc.invalidateQueries({ queryKey: qk.achievements });
     },
   });
 }
@@ -550,6 +556,7 @@ export function useWriteReport() {
     onSuccess: (report) => {
       qc.setQueryData(qk.report(report.week_start), report);
       void qc.invalidateQueries({ queryKey: qk.reports });
+      void qc.invalidateQueries({ queryKey: qk.achievements });
     },
     onSettled: () => void qc.invalidateQueries({ queryKey: qk.aiStatus }),
   });
@@ -612,5 +619,27 @@ export function useRecipeIdeas() {
       void qc.invalidateQueries({ queryKey: qk.aiStatus });
       void qc.invalidateQueries({ queryKey: ["food-search"] });
     },
+  });
+}
+
+// --- Trophies --------------------------------------------------------------------------------
+
+export function useAchievements(enabled = true) {
+  return useQuery({
+    queryKey: qk.achievements,
+    queryFn: () => api<Achievement[]>("/achievements"),
+    enabled,
+  });
+}
+
+export function useMarkAchievementsSeen() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (keys: string[]) =>
+      api<void>("/achievements/seen", { method: "POST", json: { keys } }),
+    onMutate: (keys) =>
+      qc.setQueryData<Achievement[]>(qk.achievements, (prev) =>
+        prev?.map((a) => (keys.includes(a.key) ? { ...a, new: false } : a)),
+      ),
   });
 }

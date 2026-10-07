@@ -95,6 +95,24 @@ Targets start from a standard estimate: BMR (Katch-McArdle when there's a recent
 
 Nutrient averages use only the logged foods that report each nutrient. A nutrient reported by under 60% of your food shows "Not enough data" rather than a falsely low number. Reference amounts are the US Dietary Reference Intakes for your sex and age.
 
+## Trophies
+
+More → **Trophies** lists 31 trophies in bronze, silver and gold:
+- **Consistency:** weigh-in and food-logging streaks, a weigh-in every week for 12 weeks, protein target on 5 days in a week, calories within 10% on 5 days in a week.
+- **Body:** trend weight, waist and body fat below their peak by set amounts, and "Muscle keeper": 2 kg down while lean mass holds.
+- **Goals:** halfway to a goal, a goal reached, three goals reached.
+- **Habits:** firsts (weigh-in, tape measurement, photo, recipe, weekly report, AI-planned meal) and counts (foods logged, photo weeks, target updates, foods logged from photos).
+
+How they work:
+- Trophies are computed from your history, so the first visit backfills everything you'd already earned, dated the day you earned it.
+- Body and goal trophies use the smoothed trend, not single readings.
+- Once earned, a trophy stays earned, even if a streak later breaks.
+- Trophies for metrics you hide in Settings are left out.
+- A new trophy gets a full-screen celebration the next time the app loads it. Many at once (like the first backfill) get one summary card instead.
+- Celebrations can be switched off per device in Settings, and they don't animate when the phone asks for reduced motion.
+
+The catalogue lives in `backend/app/services/achievement_service.py`. The `achievements` table only stores which trophies were earned, when, and whether their celebration was shown.
+
 ## AI features
 
 AI features: logging food from a photo, a written weekly report (More → Weekly reports), a rough body-fat range from a day's progress photos (Photos, shown as ranges on Trends), and Nutrition → **Plan with AI**: a day of meals (or the rest of today) aimed at your targets, or recipe ideas from the groceries you have.
