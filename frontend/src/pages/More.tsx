@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 const LINKS = [
   { to: "/photos", label: "Photos", body: "Progress photos and before/after compare" },
+  { to: "/training", label: "Training", body: "Your workout program and today's session" },
   { to: "/nutrition", label: "Nutrition", body: "My foods, targets and settings" },
   { to: "/trophies", label: "Trophies", body: "Streaks, milestones and goals you've reached" },
   { to: "/reports", label: "Weekly reports", body: "A written summary of each week" },

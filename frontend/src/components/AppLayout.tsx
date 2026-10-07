@@ -1,4 +1,4 @@
-import { ChartLine, Ellipsis, House, Images, Plus, Utensils } from "lucide-react";
+import { ChartLine, Dumbbell, Ellipsis, House, Images, Plus, Utensils } from "lucide-react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { env } from "../lib/env";
@@ -22,6 +22,7 @@ const NAV = [
   { to: "/", label: "Home", icon: House, end: true, mobile: true },
   { to: "/food", label: "Food", icon: Utensils, end: false, mobile: true },
   { to: "/trends", label: "Trends", icon: ChartLine, end: false, mobile: true },
+  { to: "/training", label: "Training", icon: Dumbbell, end: false, mobile: false },
   { to: "/photos", label: "Photos", icon: Images, end: false, mobile: false },
   { to: "/more", label: "More", icon: Ellipsis, end: false, mobile: true },
 ];
