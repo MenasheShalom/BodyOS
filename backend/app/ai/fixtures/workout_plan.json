@@ -1,0 +1,28 @@
+{
+  "name": "Full body, 3 days",
+  "summary": "Three full-body sessions a week. Add a rep each session until you reach the top of the range on every set, then add weight.",
+  "weeks": 6,
+  "daily_steps": 9000,
+  "days": [
+    {"name": "Full body A", "focus": "Squat, push, pull", "location": 0, "cardio": "", "exercises": [
+      {"name": "Goblet squat", "kind": "reps", "sets": 3, "reps_low": 8, "reps_high": 12, "seconds": 0,
+       "rest_seconds": 90, "uses_weight": true, "notes": "Sit between the hips", "alternatives": ["Split squat"]},
+      {"name": "Push-up", "kind": "reps", "sets": 3, "reps_low": 6, "reps_high": 15, "seconds": 0,
+       "rest_seconds": 60, "uses_weight": false, "notes": "", "alternatives": ["Dumbbell floor press"]},
+      {"name": "Plank", "kind": "time", "sets": 2, "reps_low": 0, "reps_high": 0, "seconds": 40,
+       "rest_seconds": 45, "uses_weight": false, "notes": "", "alternatives": []}
+    ]},
+    {"name": "Full body B", "focus": "Hinge, pull, carry", "location": 0, "cardio": "10 min brisk walk", "exercises": [
+      {"name": "Dumbbell Romanian deadlift", "kind": "reps", "sets": 3, "reps_low": 8, "reps_high": 12,
+       "seconds": 0, "rest_seconds": 90, "uses_weight": true, "notes": "", "alternatives": ["Hip thrust"]},
+      {"name": "One-arm dumbbell row", "kind": "reps", "sets": 3, "reps_low": 8, "reps_high": 12,
+       "seconds": 0, "rest_seconds": 60, "uses_weight": true, "notes": "", "alternatives": ["Band row"]}
+    ]},
+    {"name": "Full body C", "focus": "Lunge, press", "location": 7, "cardio": "", "exercises": [
+      {"name": "Reverse lunge", "kind": "reps", "sets": 3, "reps_low": 8, "reps_high": 12, "seconds": 0,
+       "rest_seconds": 60, "uses_weight": true, "notes": "", "alternatives": ["Step-up"]},
+      {"name": "Dumbbell overhead press", "kind": "reps", "sets": 3, "reps_low": 8, "reps_high": 12,
+       "seconds": 0, "rest_seconds": 90, "uses_weight": true, "notes": "", "alternatives": ["Pike push-up"]}
+    ]}
+  ]
+}

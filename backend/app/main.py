@@ -27,6 +27,7 @@ from app.routers import (
     recipes,
     saved_meals,
     series,
+    training,
 )
 
 logger = logging.getLogger("bodyos")
@@ -90,6 +91,7 @@ def create_app() -> FastAPI:
     app.include_router(ai_insight.router)
     app.include_router(ai_planning.router)
     app.include_router(achievements.router)
+    app.include_router(training.router)
 
     return app
 

@@ -8,7 +8,7 @@ from app.ai.service import FEATURES
 from app.nutrition_schemas import FoodOut, Meal
 
 FeatureName = Literal[
-    "food_photo", "weekly_report", "body_fat", "meal_plan", "recipe_from_groceries"
+    "food_photo", "weekly_report", "body_fat", "meal_plan", "recipe_from_groceries", "workout_plan"
 ]
 assert set(FeatureName.__args__) == set(FEATURES)  # type: ignore[attr-defined]
 
