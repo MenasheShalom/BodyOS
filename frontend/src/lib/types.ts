@@ -438,3 +438,13 @@ export type Achievement = {
   /** Earned, but its celebration hasn't been shown yet. */
   new: boolean;
 };
+
+// --- Connected AI assistants (MCP over OAuth) -----------------------------------------------
+
+export type ConsentRequest = { client_name: string; client_uri: string | null; redirect_host: string };
+export type ConnectedApp = {
+  id: string;
+  client_name: string;
+  created_at: string;
+  last_used_at: string | null;
+};

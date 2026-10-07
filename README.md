@@ -113,6 +113,34 @@ How they work:
 
 The catalogue lives in `backend/app/services/achievement_service.py`. The `achievements` table only stores which trophies were earned, when, and whether their celebration was shown.
 
+## Connect Claude (MCP)
+
+The API is also an MCP server, so Claude (or another AI assistant that supports remote MCP servers) can read your BodyOS data and log for you: "log 2 eggs and toast for breakfast", "how did my protein look this week?".
+
+**Connecting:**
+- **Claude app or claude.ai:** add a custom connector at https://claude.ai/customize/connectors with the URL `https://<your-api>.onrender.com/mcp`. Settings → Connected apps shows the exact URL with a copy button.
+- **Claude Code:** `claude mcp add --transport http bodyos https://<your-api>.onrender.com/mcp`.
+- Claude opens BodyOS in the browser. Sign in, check which app is asking and where you'll be sent back, then tap Allow.
+- Settings → Connected apps lists connected assistants and disconnects them.
+
+**Tools:**
+- **Reading:** `get_summary`, `get_trend`, `get_food_day`, `get_targets`, `get_trophies`, `search_foods`.
+- **Logging:** `log_weigh_in`, `log_food`, `quick_add`, `delete_food_entry`.
+
+They run as you and use the same code as the app, so validation and numbers match.
+
+**Security:**
+- **OAuth 2.1:** dynamic client registration, PKCE, short-lived access tokens (1 hour) and rotating refresh tokens (60 days).
+- **Stored as hashes:** codes and tokens are kept only as SHA-256 hashes.
+- **Locked tables:** the OAuth tables have row level security with no policies, so only the backend can use them.
+- **Disconnecting:** deleting a connected app ends its tokens at once.
+
+**Settings (Render):**
+- `PUBLIC_API_URL` defaults to Render's `RENDER_EXTERNAL_URL`.
+- `APP_URL` (the frontend, where the consent page lives) defaults to the first `CORS_ORIGINS` entry. Set it if that isn't the frontend.
+- `MCP_ENABLED=false` turns the server off.
+- On Render's free plan the API sleeps when idle, so the first request after a while can take up to a minute.
+
 ## AI features
 
 AI features: logging food from a photo, a written weekly report (More → Weekly reports), a rough body-fat range from a day's progress photos (Photos, shown as ranges on Trends), and Nutrition → **Plan with AI**: a day of meals (or the rest of today) aimed at your targets, or recipe ideas from the groceries you have.

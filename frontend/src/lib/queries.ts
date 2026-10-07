@@ -51,6 +51,8 @@ import type {
   RecipeIdeas,
   SavedMealInput,
   Achievement,
+  ConnectedApp,
+  ConsentRequest,
 } from "./types";
 
 export const qk = {
@@ -81,6 +83,7 @@ export const qk = {
   bodyFat: ["ai-body-fat"] as const,
   aiSettings: ["ai-settings"] as const,
   achievements: ["achievements"] as const,
+  connectedApps: ["connected-apps"] as const,
   estimate: (p: EstimateParams) =>
     ["nutrition-estimate", p.mode, p.activity_level, p.deficit_pct, p.protein_g_per_kg] as const,
 };
@@ -641,5 +644,41 @@ export function useMarkAchievementsSeen() {
       qc.setQueryData<Achievement[]>(qk.achievements, (prev) =>
         prev?.map((a) => (keys.includes(a.key) ? { ...a, new: false } : a)),
       ),
+  });
+}
+
+// --- Connected AI assistants ----------------------------------------------------------------
+
+export function useConsentRequest(id: string) {
+  return useQuery({
+    queryKey: ["consent", id],
+    queryFn: () => api<ConsentRequest>(`/oauth/requests/${encodeURIComponent(id)}`),
+    enabled: !!id,
+    retry: false,
+  });
+}
+
+export function useAnswerConsent() {
+  return useMutation({
+    mutationFn: ({ id, allow }: { id: string; allow: boolean }) =>
+      api<{ redirect_url: string }>(
+        `/oauth/requests/${encodeURIComponent(id)}/${allow ? "approve" : "deny"}`,
+        { method: "POST" },
+      ),
+  });
+}
+
+export function useConnectedApps() {
+  return useQuery({
+    queryKey: qk.connectedApps,
+    queryFn: () => api<ConnectedApp[]>("/oauth/grants"),
+  });
+}
+
+export function useDisconnectApp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<void>(`/oauth/grants/${id}`, { method: "DELETE" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.connectedApps }),
   });
 }

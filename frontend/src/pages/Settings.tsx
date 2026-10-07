@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { AiSettingsSection } from "../components/ai/AiSettingsSection";
+import { ConnectedApps } from "../components/ConnectedApps";
 import { celebrationsOn, setCelebrations } from "../components/trophies/trophyMeta";
 import { ProfileForm } from "../forms/ProfileForm";
 import { useProfile, useSaveProfile } from "../lib/queries";
@@ -28,6 +29,7 @@ export function Settings() {
       />
       {saved && <p className="text-sm text-good">Saved.</p>}
       <AiSettingsSection />
+      <ConnectedApps />
       <section aria-label="Trophies" className="space-y-2">
         <h2 className="text-lg font-semibold">Trophies</h2>
         <label className="flex items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3">
