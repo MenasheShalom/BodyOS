@@ -19,3 +19,4 @@ test-results/
 supabase/.branches/
 supabase/.temp/
 frontend/e2e/.user.json
+frontend/e2e/.storage.json

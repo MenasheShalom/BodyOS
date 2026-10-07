@@ -24,6 +24,7 @@ import { Settings } from "./pages/Settings";
 import { Targets } from "./pages/Targets";
 import { SignIn } from "./pages/SignIn";
 import { Trends } from "./pages/Trends";
+import { Trophies } from "./pages/Trophies";
 
 export function App() {
   return (
@@ -48,6 +49,7 @@ export function App() {
           <Route path="photos/compare" element={<PhotoCompare />} />
           <Route path="settings" element={<Settings />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="trophies" element={<Trophies />} />
           <Route path="reports/:week" element={<ReportDetail />} />
           <Route path="nutrition" element={<Nutrition />} />
           <Route path="nutrition/setup" element={<NutritionSetup />} />

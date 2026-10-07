@@ -14,6 +14,10 @@
   --color-bad: #b8433a;
   --color-series-1: #b7791f;
   --color-series-2: #2d6cb5;
+  /* trophy tiers */
+  --color-bronze: #a0602c;
+  --color-silver: #7d8c98;
+  --color-gold: #b58a12;
   --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -30,6 +34,9 @@
     --color-bad: #ef7b70;
     --color-series-1: #b98331;
     --color-series-2: #5b8fd6;
+    --color-bronze: #d08a52;
+    --color-silver: #b4c2cc;
+    --color-gold: #e7bd45;
   }
 }
 
@@ -69,5 +76,76 @@ body {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Trophy celebration: the medal pops in, confetti falls. Nothing moves for reduced motion. */
+@keyframes trophy-pop {
+  0% {
+    transform: scale(0.3) rotate(-12deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12) rotate(4deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+@keyframes trophy-rise {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, -10vh, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--drift, 0), 110vh, 0) rotate(var(--spin, 540deg));
+    opacity: 0.9;
+  }
+}
+@keyframes trophy-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.08);
+  }
+}
+@utility animate-trophy-pop {
+  animation: trophy-pop 700ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+@utility animate-trophy-rise {
+  animation: trophy-rise 500ms ease-out both;
+}
+@utility animate-trophy-glow {
+  animation: trophy-glow 2.4s ease-in-out infinite;
+}
+@utility confetti-piece {
+  position: absolute;
+  top: 0;
+  animation: confetti-fall var(--duration, 3s) cubic-bezier(0.25, 0.4, 0.5, 1) var(--delay, 0s)
+    both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-trophy-pop,
+  .animate-trophy-rise,
+  .animate-trophy-glow {
+    animation: none;
+  }
+  .confetti-piece {
+    display: none;
   }
 }

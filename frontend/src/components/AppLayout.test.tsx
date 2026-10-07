@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./WakingBanner", () => ({ WakingBanner: () => null }));
 vi.mock("./LogSheet", () => ({ LogSheet: () => null }));
+vi.mock("./trophies/TrophyCelebration", () => ({ TrophyCelebration: () => null }));
 
 import { AppLayout } from "./AppLayout";
 

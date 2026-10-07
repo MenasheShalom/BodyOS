@@ -4,6 +4,7 @@ import { Link } from "react-router";
 const LINKS = [
   { to: "/photos", label: "Photos", body: "Progress photos and before/after compare" },
   { to: "/nutrition", label: "Nutrition", body: "My foods, targets and settings" },
+  { to: "/trophies", label: "Trophies", body: "Streaks, milestones and goals you've reached" },
   { to: "/reports", label: "Weekly reports", body: "A written summary of each week" },
   { to: "/history", label: "History", body: "Every entry, edit or delete" },
   { to: "/goals", label: "Goals", body: "Targets and projections" },

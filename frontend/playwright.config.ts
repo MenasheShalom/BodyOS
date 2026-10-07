@@ -9,6 +9,7 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:5173",
     trace: "retain-on-failure",
+    storageState: "e2e/.storage.json",
     // Optional: point at a preinstalled Chromium when Playwright's own download isn't available.
     launchOptions: process.env.PW_CHROMIUM_PATH
       ? { executablePath: process.env.PW_CHROMIUM_PATH }

@@ -30,6 +30,7 @@ export function useUploadPhoto() {
     mutationFn: (p: NewPhoto) => uploadPhoto(p),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["photos"] });
+      void qc.invalidateQueries({ queryKey: ["achievements"] });
       void qc.invalidateQueries({ queryKey: qk.dashboard });
     },
   });

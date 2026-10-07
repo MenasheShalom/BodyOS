@@ -4,6 +4,7 @@ import { NavLink, Outlet } from "react-router";
 import { env } from "../lib/env";
 import type { Meal } from "../lib/types";
 import { LogSheet } from "./LogSheet";
+import { TrophyCelebration } from "./trophies/TrophyCelebration";
 import { WakingBanner } from "./WakingBanner";
 
 export type LogTab = "food" | "weigh-in" | "measurements" | "photo";
@@ -86,6 +87,7 @@ export function AppLayout() {
           </NavLink>
         ))}
       </nav>
+      <TrophyCelebration />
       {sheet && (
         <LogSheet initialTab={sheet.tab} food={sheet.food} onClose={() => setSheet(null)} />
       )}

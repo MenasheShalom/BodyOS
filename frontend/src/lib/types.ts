@@ -421,3 +421,20 @@ export type RecipeIdea = {
   per_serving: Nutrients;
 };
 export type RecipeIdeas = { recipes: RecipeIdea[]; unresolved: number; notes: string };
+
+export type TrophyCategory = "consistency" | "body" | "goals" | "habits";
+export type TrophyTier = "bronze" | "silver" | "gold";
+export type Achievement = {
+  key: string;
+  category: TrophyCategory;
+  tier: TrophyTier;
+  title: string;
+  description: string;
+  target: number;
+  unit: string;
+  /** Towards `target`; equals it once earned. */
+  progress: number;
+  earned_on: string | null;
+  /** Earned, but its celebration hasn't been shown yet. */
+  new: boolean;
+};
