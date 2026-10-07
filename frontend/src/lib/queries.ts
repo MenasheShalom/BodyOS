@@ -51,6 +51,16 @@ import type {
   RecipeIdeas,
   SavedMealInput,
   Achievement,
+  Equipment,
+  LoggedSet,
+  Program,
+  SessionSummary,
+  TodayWorkout,
+  TrainingLocation,
+  TrainingLocationInput,
+  TrainingProfile,
+  TrainingProfileInput,
+  WorkoutSession,
 } from "./types";
 
 export const qk = {
@@ -81,6 +91,12 @@ export const qk = {
   bodyFat: ["ai-body-fat"] as const,
   aiSettings: ["ai-settings"] as const,
   achievements: ["achievements"] as const,
+  equipment: ["training-equipment"] as const,
+  locations: ["training-locations"] as const,
+  trainingProfile: ["training-profile"] as const,
+  program: ["training-program"] as const,
+  today: ["training-today"] as const,
+  sessions: ["training-sessions"] as const,
   estimate: (p: EstimateParams) =>
     ["nutrition-estimate", p.mode, p.activity_level, p.deficit_pct, p.protein_g_per_kg] as const,
 };
@@ -641,5 +657,162 @@ export function useMarkAchievementsSeen() {
       qc.setQueryData<Achievement[]>(qk.achievements, (prev) =>
         prev?.map((a) => (keys.includes(a.key) ? { ...a, new: false } : a)),
       ),
+  });
+}
+
+// --- Training ---------------------------------------------------------------------------------
+
+export function useEquipment() {
+  return useQuery({
+    queryKey: qk.equipment,
+    queryFn: () => api<Equipment[]>("/training/equipment"),
+    staleTime: Infinity,
+  });
+}
+
+export function useLocations() {
+  return useQuery({
+    queryKey: qk.locations,
+    queryFn: () => api<TrainingLocation[]>("/training/locations"),
+  });
+}
+
+export function useSaveLocation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: string; body: TrainingLocationInput }) =>
+      id
+        ? api<TrainingLocation>(`/training/locations/${id}`, { method: "PUT", json: body })
+        : api<TrainingLocation>("/training/locations", { method: "POST", json: body }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.locations }),
+  });
+}
+
+export function useDeleteLocation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<void>(`/training/locations/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.locations });
+      void qc.invalidateQueries({ queryKey: qk.program });
+    },
+  });
+}
+
+export function useTrainingProfile() {
+  return useQuery({
+    queryKey: qk.trainingProfile,
+    queryFn: () => api<TrainingProfile>("/training/profile"),
+  });
+}
+
+export function useSaveTrainingProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: TrainingProfileInput) =>
+      api<TrainingProfile>("/training/profile", { method: "PUT", json: body }),
+    onSuccess: (p) => qc.setQueryData(qk.trainingProfile, p),
+  });
+}
+
+export function useProgram() {
+  return useQuery({
+    queryKey: qk.program,
+    queryFn: () => api<Program | null>("/training/programs/active"),
+  });
+}
+
+function useProgramMutation<TVars>(fn: (vars: TVars) => Promise<Program>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (p) => {
+      qc.setQueryData(qk.program, p);
+      void qc.invalidateQueries({ queryKey: qk.today });
+    },
+  });
+}
+
+export function useGenerateProgram() {
+  const qc = useQueryClient();
+  const m = useProgramMutation((location_ids: string[]) =>
+    api<Program>("/training/programs", { method: "POST", json: { location_ids } }),
+  );
+  return {
+    ...m,
+    mutateAsync: (ids: string[]) =>
+      m.mutateAsync(ids).finally(() => void qc.invalidateQueries({ queryKey: qk.aiStatus })),
+  };
+}
+
+export const useMoveDay = () =>
+  useProgramMutation(({ dayId, locationId }: { dayId: string; locationId: string | null }) =>
+    api<Program>(`/training/program-days/${dayId}`, {
+      method: "PATCH",
+      json: { location_id: locationId },
+    }),
+  );
+
+export const useSwapExercise = () =>
+  useProgramMutation(({ exerciseId, name }: { exerciseId: string; name: string }) =>
+    api<Program>(`/training/program-exercises/${exerciseId}/swap`, {
+      method: "POST",
+      json: { name },
+    }),
+  );
+
+export function useEndProgram() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<void>("/training/programs/active", { method: "DELETE" }),
+    onSuccess: () => {
+      qc.setQueryData(qk.program, null);
+      void qc.invalidateQueries({ queryKey: qk.today });
+    },
+  });
+}
+
+export function useTodayWorkout(enabled = true) {
+  return useQuery({
+    queryKey: qk.today,
+    queryFn: () => api<TodayWorkout | null>("/training/today"),
+    enabled,
+  });
+}
+
+export function useStartSession() {
+  return useMutation({
+    mutationFn: (program_day_id: string) =>
+      api<WorkoutSession>("/training/sessions", { method: "POST", json: { program_day_id } }),
+  });
+}
+
+export function useSaveSets() {
+  return useMutation({
+    mutationFn: ({ id, sets, notes }: { id: string; sets: LoggedSet[]; notes: string }) =>
+      api<WorkoutSession>(`/training/sessions/${id}/sets`, {
+        method: "PUT",
+        json: { sets, notes },
+      }),
+  });
+}
+
+export function useCompleteSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<WorkoutSession>(`/training/sessions/${id}/complete`, { method: "POST" }),
+    onSuccess: () => {
+      for (const key of [qk.today, qk.sessions, qk.achievements]) {
+        void qc.invalidateQueries({ queryKey: key });
+      }
+    },
+  });
+}
+
+export function useSessions(limit = 30) {
+  return useQuery({
+    queryKey: [...qk.sessions, limit],
+    queryFn: () => api<SessionSummary[]>(`/training/sessions?limit=${limit}`),
   });
 }

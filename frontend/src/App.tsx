@@ -24,7 +24,10 @@ import { Settings } from "./pages/Settings";
 import { Targets } from "./pages/Targets";
 import { SignIn } from "./pages/SignIn";
 import { Trends } from "./pages/Trends";
+import { Training } from "./pages/Training";
+import { TrainingSetup } from "./pages/TrainingSetup";
 import { Trophies } from "./pages/Trophies";
+import { WorkoutToday } from "./pages/WorkoutToday";
 
 export function App() {
   return (
@@ -50,6 +53,9 @@ export function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="reports" element={<Reports />} />
           <Route path="trophies" element={<Trophies />} />
+          <Route path="training" element={<Training />} />
+          <Route path="training/setup" element={<TrainingSetup />} />
+          <Route path="training/today" element={<WorkoutToday />} />
           <Route path="reports/:week" element={<ReportDetail />} />
           <Route path="nutrition" element={<Nutrition />} />
           <Route path="nutrition/setup" element={<NutritionSetup />} />

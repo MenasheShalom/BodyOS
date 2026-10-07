@@ -326,7 +326,8 @@ export type AiFeature =
   | "weekly_report"
   | "body_fat"
   | "meal_plan"
-  | "recipe_from_groceries";
+  | "recipe_from_groceries"
+  | "workout_plan";
 export type AiStatus = {
   /** Set up on the server and switched on by the user. */
   enabled: boolean;
@@ -437,4 +438,92 @@ export type Achievement = {
   earned_on: string | null;
   /** Earned, but its celebration hasn't been shown yet. */
   new: boolean;
+};
+
+// --- Training ---------------------------------------------------------------------------------
+
+export type Equipment = { key: string; label: string };
+export type TrainingLocationInput = { name: string; equipment: string[]; notes: string };
+export type TrainingLocation = TrainingLocationInput & { id: string };
+export type Experience = "new" | "some" | "experienced";
+export type CardioPref = "none" | "light" | "moderate";
+export type TrainingProfileInput = {
+  experience: Experience;
+  limitations: string;
+  days_per_week: number;
+  session_minutes: number;
+  cardio: CardioPref;
+};
+export type TrainingProfile = TrainingProfileInput & { configured: boolean };
+export type ProgramExercise = {
+  id: string;
+  position: number;
+  name: string;
+  kind: "reps" | "time";
+  sets: number;
+  reps_low: number | null;
+  reps_high: number | null;
+  seconds: number | null;
+  rest_seconds: number;
+  uses_weight: boolean;
+  notes: string;
+  alternatives: string[];
+};
+export type ProgramDay = {
+  id: string;
+  position: number;
+  name: string;
+  focus: string;
+  location_id: string | null;
+  location_name: string | null;
+  cardio: string;
+  exercises: ProgramExercise[];
+};
+export type Program = {
+  id: string;
+  name: string;
+  summary: string;
+  weeks: number;
+  daily_steps: number | null;
+  started_on: string;
+  days: ProgramDay[];
+  created_at: string;
+};
+export type LoggedSet = {
+  exercise_id: string | null;
+  exercise_name: string;
+  set_number: number;
+  weight_kg: number | null;
+  reps: number | null;
+  seconds: number | null;
+};
+export type WorkoutSession = {
+  id: string;
+  program_day_id: string | null;
+  day_name: string;
+  performed_on: string;
+  completed_at: string | null;
+  notes: string;
+  sets: LoggedSet[];
+};
+export type SetSuggestion = {
+  weight_kg: number | null;
+  reps: number | null;
+  seconds: number | null;
+  note: string;
+};
+export type TodayWorkout = {
+  day: ProgramDay;
+  week: number;
+  session: WorkoutSession | null;
+  exercises: { exercise: ProgramExercise; suggestion: SetSuggestion; last: LoggedSet[] }[];
+  sessions_done: number;
+};
+export type SessionSummary = {
+  id: string;
+  day_name: string;
+  performed_on: string;
+  completed_at: string | null;
+  sets_done: number;
+  volume_kg: number;
 };
