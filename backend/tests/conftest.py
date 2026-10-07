@@ -23,6 +23,7 @@ TEST_DB_URL = os.environ.get(
     "TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/bodyos_test"
 )
 TABLES = [
+    "achievements",
     "ai_reports",
     "ai_body_fat_estimates",
     "ai_usage",

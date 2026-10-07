@@ -10,6 +10,7 @@ from app.ai.provider import AIError
 from app.ai.service import AIDisabled, AILimit, error_body
 from app.config import get_settings
 from app.routers import (
+    achievements,
     ai,
     ai_insight,
     ai_planning,
@@ -88,6 +89,7 @@ def create_app() -> FastAPI:
     app.include_router(ai.router)
     app.include_router(ai_insight.router)
     app.include_router(ai_planning.router)
+    app.include_router(achievements.router)
 
     return app
 
