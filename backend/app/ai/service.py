@@ -29,6 +29,7 @@ FEATURES: tuple[Feature, ...] = (
     "body_fat",
     "meal_plan",
     "recipe_from_groceries",
+    "workout_plan",
 )
 # Outages and requests turned away at the limit don't use up the month's quota.
 COUNTED = ("ok", "refused", "invalid_output")

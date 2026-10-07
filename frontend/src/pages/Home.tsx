@@ -8,6 +8,7 @@ import { CheckInCard } from "../components/nutrition/CheckInCard";
 import { FoodTodayCard } from "../components/nutrition/FoodTodayCard";
 import { RecentWeighIns } from "../components/RecentWeighIns";
 import { StatCard } from "../components/StatCard";
+import { TrainingCard } from "../components/training/TrainingCard";
 import type { Direction } from "../lib/format";
 import { useDashboard } from "../lib/queries";
 import type { Dashboard } from "../lib/types";
@@ -104,6 +105,7 @@ export function Home() {
       </section>
 
       {d.food_today && <FoodTodayCard food={d.food_today} />}
+      <TrainingCard />
 
       <section className="grid grid-cols-2 gap-3">
         {d.cards.map((s) => (

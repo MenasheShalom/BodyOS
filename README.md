@@ -95,6 +95,27 @@ Targets start from a standard estimate: BMR (Katch-McArdle when there's a recent
 
 Nutrient averages use only the logged foods that report each nutrient. A nutrient reported by under 60% of your food shows "Not enough data" rather than a falsely low number. Reference amounts are the US Dietary Reference Intakes for your sex and age.
 
+## Training
+
+More → **Training** builds a workout program with AI and helps you follow it.
+
+**Setup:**
+- **Where you train:** your places and the equipment at each, starting from presets (Gym, Home, Outdoors) and editable. Bodyweight work is always allowed.
+- **About your training:** experience, injuries or limits, days per week, minutes per session, and how much cardio you want.
+
+**Building a program.** The AI gets:
+- your profile and trend body numbers (weight, body fat, lean mass)
+- your nutrition phase and deficit, and your active goals
+- your setup and the locations you choose
+
+It returns a multi-week program: the requested number of days, each assigned to one of your locations and using only that location's equipment, plus a daily step target. Each exercise comes with one or two alternatives. Programs are saved; building a new one replaces the active program and keeps your history.
+
+**Using it:**
+- Move a day to another location, or swap an exercise to one of its alternatives. No extra AI request is needed.
+- **Today's workout** is the next day in rotation. Each set is prefilled from double progression: add a rep each session until every set reaches the top of the range, then add weight (1 kg under 20 kg, 2.5 kg above). Timed holds add 5 seconds.
+- Tick each set as you go; a rest timer starts after each one. Finishing records the session (sets and volume).
+- Progression follows the exercise name, so it carries over to a new program that uses the same exercises.
+
 ## Trophies
 
 More → **Trophies** lists 31 trophies in bronze, silver and gold:
@@ -167,7 +188,7 @@ AI_PROVIDER=google GOOGLE_API_KEY=... AI_MODEL=... python scripts/ai_smoke.py me
 ```
 
 **Privacy:**
-- Nothing is sent to the AI unless you start it: you choose the food photo, open the week's report, tap "Estimate body fat" on a day of progress photos, or ask for a meal plan (your targets and preferences are sent) or recipes (your grocery list is sent). The first use of each feature shows a notice naming the provider and what is sent.
+- Nothing is sent to the AI unless you start it: you choose the food photo, open the week's report, tap "Estimate body fat" on a day of progress photos, ask for a meal plan (your targets and preferences are sent) or recipes (your grocery list is sent), or build a training program (your profile, body trends, goals, training setup and noted injuries are sent). The first use of each feature shows a notice naming the provider and what is sent.
 - Food photos are resized in the browser (which also drops location metadata), sent to the provider, and never stored by BodyOS.
 - AI answers are drafts: nothing is logged until you review it and tap Log, and estimates are tagged "AI estimate" in the day view.
 - AI can be switched off per user in Settings.

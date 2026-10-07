@@ -6,7 +6,9 @@ from typing import Any, Generic, Literal, Protocol, TypeVar
 
 from pydantic import BaseModel
 
-Feature = Literal["food_photo", "weekly_report", "body_fat", "meal_plan", "recipe_from_groceries"]
+Feature = Literal[
+    "food_photo", "weekly_report", "body_fat", "meal_plan", "recipe_from_groceries", "workout_plan"
+]
 MediaType = Literal["image/jpeg", "image/png", "image/webp"]
 
 T = TypeVar("T", bound=BaseModel)
