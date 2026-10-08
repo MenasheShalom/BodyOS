@@ -307,3 +307,63 @@ def test_tokens_only_see_their_user(client, headers, make_user, user) -> None:
     call(client, mine, "quick_add", name="Mine", energy_kcal=100, meal="snack")
     assert call(client, theirs, "get_food_day")["structuredContent"]["entries"] == []
     assert len(call(client, mine, "get_food_day")["structuredContent"]["entries"]) == 1
+
+
+def test_create_custom_food(client, headers, user, db, sources) -> None:
+    assert client.put("/me/profile", json=PROFILE, headers=headers).status_code == 200
+    token = connect(client, headers)["access_token"]
+
+    # from a label that gives values per serving
+    res = call(
+        client,
+        token,
+        "create_food",
+        name="Grandma's lentil soup",
+        energy_kcal=180,
+        protein_g=12,
+        carbs_g=24,
+        fat_g=4,
+        per="serving",
+        serving_grams=300,
+        serving_label="1 bowl",
+        other_nutrients={"fiber_g": 9},
+    )
+    assert res["isError"] is False, res
+    food = res["structuredContent"]
+    assert food["is_own"] is True and food["source"] == "custom"
+    assert food["nutrients_per_100g"] == {
+        "energy_kcal": 60.0,
+        "protein_g": 4.0,
+        "carbs_g": 8.0,
+        "fat_g": 1.333,
+        "fiber_g": 3.0,
+    }
+    assert food["servings"] == [{"label": "1 bowl", "grams": 300.0}]
+
+    # it's found by search and can be logged by id
+    found = call(client, token, "search_foods", query="lentil")["structuredContent"]
+    assert [f["id"] for f in found["local"]] == [food["id"]]
+    logged = call(client, token, "log_food", food_id=food["id"], grams=300, meal="dinner")
+    assert logged["structuredContent"]["nutrients"]["energy_kcal"] == 180
+    # and shows in the app's My foods
+    mine = client.get("/foods/mine", headers=headers).json()
+    assert [f["name"] for f in mine] == ["Grandma's lentil soup"]
+
+    # per 100 g is the default
+    bar = call(client, token, "create_food", name="Protein bar", energy_kcal=380, protein_g=33)
+    assert bar["structuredContent"]["nutrients_per_100g"] == {"energy_kcal": 380, "protein_g": 33}
+
+    # mistakes come back as tool errors
+    no_size = call(client, token, "create_food", name="X", energy_kcal=100, per="serving")
+    assert no_size["isError"] and "serving_grams" in no_size["content"][0]["text"]
+    unknown = call(
+        client, token, "create_food", name="X", energy_kcal=100, other_nutrients={"magic_g": 1}
+    )
+    assert unknown["isError"] is True
+    silly = call(client, token, "create_food", name="X", energy_kcal=5000)
+    assert silly["isError"] is True
+
+    with psycopg.connect(db) as conn:
+        assert conn.execute(
+            "select count(*) from foods where user_id = %s", (user,)
+        ).fetchone() == (2,)

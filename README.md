@@ -147,6 +147,7 @@ The API is also an MCP server, so Claude (or another AI assistant that supports 
 **Tools:**
 - **Reading:** `get_summary`, `get_trend`, `get_food_day`, `get_targets`, `get_trophies`, `search_foods`.
 - **Logging:** `log_weigh_in`, `log_food`, `quick_add`, `delete_food_entry`.
+- **Foods:** `create_food` saves a custom food to My foods, from a label, a restaurant's values or a home recipe. Values can be given per 100 g or per serving, with an optional serving size.
 
 They run as you and use the same code as the app, so validation and numbers match.
 
