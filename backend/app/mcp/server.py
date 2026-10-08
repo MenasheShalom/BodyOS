@@ -27,7 +27,7 @@ from app.db import Conn
 from app.food_sources import FoodSource
 from app.mcp.oauth import SCOPE, BodyOSOAuthProvider
 from app.metrics import METRICS
-from app.nutrition_schemas import FoodLogIn, ImportIn, QuickAddIn
+from app.nutrition_schemas import CustomFoodIn, FoodLogIn, ImportIn, QuickAddIn, ServingIn
 from app.profiles import load_profile
 from app.routers import achievements, dashboard, food_log, foods, nutrition, series
 from app.routers.body_entries import create_entry
@@ -45,7 +45,9 @@ composition, tape measurements, food log with calorie and macro targets, goals, 
 weekly reports. All numbers are the user's own data. Trends are smoothed (EWMA) and are what
 the app uses for decisions; single weigh-ins are noisy. To log food from a description, search
 for each food first and log it by id with grams; use quick_add only when nothing suitable is
-found. Dates are the user's local dates (YYYY-MM-DD)."""
+found. When a food the user eats often isn't in any database (a local product, a home
+recipe, a label they read out), save it with create_food so it can be logged by id from then
+on. Dates are the user's local dates (YYYY-MM-DD)."""
 
 T = TypeVar("T")
 
@@ -281,6 +283,59 @@ def build_mcp(deps: Deps, settings: Settings) -> MCPServer:
             return food_log.quick_add(body=body, user_id=u, conn=c, now=deps.now())
 
         return _json(await run(log))
+
+    @server.tool(annotations=WRITE)
+    async def create_food(
+        name: str,
+        energy_kcal: float,
+        protein_g: float | None = None,
+        carbs_g: float | None = None,
+        fat_g: float | None = None,
+        per: Literal["100g", "serving"] = "100g",
+        serving_grams: float | None = None,
+        serving_label: str | None = None,
+        brand: str | None = None,
+        barcode: str | None = None,
+        is_liquid: bool = False,
+        other_nutrients: dict[str, float] | None = None,
+    ) -> dict[str, Any]:
+        """Saves a custom food to the user's own foods, e.g. from a nutrition label, a
+        restaurant's published values or a home recipe. Search first so it isn't a duplicate.
+
+        Give the numbers per 100 g (per="100g"), or per serving (per="serving" with
+        serving_grams, the serving's weight in grams); they are stored per 100 g. A serving
+        label and grams (e.g. "1 bar", 45) add a serving size the app offers when logging.
+        other_nutrients takes any of: fiber_g, sugar_g, sat_fat_g, sodium_mg, potassium_mg,
+        calcium_mg, iron_mg, magnesium_mg, zinc_mg, vit_d_mcg, vit_b12_mcg, vit_c_mg,
+        vit_a_mcg, folate_mcg. Leave out what the label doesn't give rather than guessing.
+        Returns the food with its id, ready for log_food."""
+        nutrients = {"energy_kcal": energy_kcal}
+        for key, value in (("protein_g", protein_g), ("carbs_g", carbs_g), ("fat_g", fat_g)):
+            if value is not None:
+                nutrients[key] = value
+        nutrients.update(other_nutrients or {})
+        if per == "serving" and serving_grams is None:
+            raise ToolError("Give serving_grams with per='serving'")
+
+        def create(c: Conn, u: UUID) -> Any:
+            servings = (
+                [ServingIn(label=serving_label or "1 serving", grams=serving_grams)]
+                if serving_grams is not None
+                else []
+            )
+            body = CustomFoodIn(
+                name=name,
+                brand=brand,
+                barcode=barcode,
+                servings=servings,
+                is_liquid=is_liquid,
+                nutrients_per_100g=nutrients if per == "100g" else None,
+                nutrients_per_serving=nutrients if per == "serving" else None,
+                serving_grams=serving_grams if per == "serving" else None,
+            )
+            return foods.create_food(body=body, user_id=u, conn=c)
+
+        return _json(await run(create))
 
     @server.tool(
         annotations=ToolAnnotations(
