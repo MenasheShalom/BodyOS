@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router";
 import { RequireAuth } from "./auth/RequireAuth";
 import { RequireProfile } from "./auth/RequireProfile";
 import { AppLayout } from "./components/AppLayout";
+import { Connect } from "./pages/Connect";
 import { Food } from "./pages/Food";
 import { FoodEditor } from "./pages/FoodEditor";
 import { Goals } from "./pages/Goals";
@@ -34,6 +35,7 @@ export function App() {
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />
       <Route element={<RequireAuth />}>
+        <Route path="/connect" element={<Connect />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route
           element={

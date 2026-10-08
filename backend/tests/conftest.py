@@ -23,6 +23,11 @@ TEST_DB_URL = os.environ.get(
     "TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/bodyos_test"
 )
 TABLES = [
+    "oauth_tokens",
+    "oauth_codes",
+    "oauth_grants",
+    "oauth_requests",
+    "oauth_clients",
     "session_sets",
     "workout_sessions",
     "program_exercises",

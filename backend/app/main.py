@@ -1,14 +1,21 @@
+import inspect
 import logging
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.routing import Route
 
 from app.ai.provider import AIError
 from app.ai.service import AIDisabled, AILimit, error_body
+from app.clock import get_now
 from app.config import get_settings
+from app.food_sources import get_food_sources
+from app.mcp.server import Deps, build_mcp, mcp_transport_security
 from app.routers import (
     achievements,
     ai,
@@ -22,6 +29,7 @@ from app.routers import (
     goals,
     measurements,
     nutrition,
+    oauth_consent,
     photos,
     profile,
     recipes,
@@ -33,9 +41,42 @@ from app.routers import (
 logger = logging.getLogger("bodyos")
 
 
+def _call_with_settings(dep: Callable[..., Any], settings: Any) -> Any:
+    """Calls a settings-taking dependency, or an override of it that takes nothing."""
+    return dep(settings) if inspect.signature(dep).parameters else dep()
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title="BodyOS API")
+    mcp_app = None
+    if settings.mcp_enabled:
+        # The tools look settings, the clock and food sources up through the app's dependency
+        # overrides, so tests can swap them like they do for routes.
+        def override(dep: Callable[..., Any]) -> Callable[..., Any]:
+            return app.dependency_overrides.get(dep, dep)
+
+        deps = Deps(
+            settings=lambda: override(get_settings)(),
+            now=lambda: override(get_now)(),
+            sources=lambda s: _call_with_settings(override(get_food_sources), s),
+        )
+        mcp = build_mcp(deps, settings)
+        mcp_app = mcp.streamable_http_app(
+            streamable_http_path="/mcp",
+            stateless_http=True,
+            json_response=True,
+            transport_security=mcp_transport_security(),
+        )
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        if mcp_app is None:
+            yield
+            return
+        async with mcp.session_manager.run():
+            yield
+
+    app = FastAPI(title="BodyOS API", lifespan=lifespan)
 
     @app.middleware("http")
     async def request_id_middleware(
@@ -92,7 +133,15 @@ def create_app() -> FastAPI:
     app.include_router(ai_planning.router)
     app.include_router(achievements.router)
     app.include_router(training.router)
+    app.include_router(oauth_consent.router)
 
+    # The MCP server and its OAuth endpoints (/mcp, /authorize, /token, /register, /revoke and
+    # the /.well-known metadata). Each path is routed to the MCP app whole, so its auth
+    # middleware applies and nothing else in the API is shadowed.
+    if mcp_app is not None:
+        for route in mcp_app.routes:
+            assert isinstance(route, Route)
+            app.router.routes.append(Route(route.path, endpoint=mcp_app))
     return app
 
 
