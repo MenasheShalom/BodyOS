@@ -41,8 +41,9 @@ test("onboard, log weigh-ins and see them on Home and Trends", async ({ page }) 
   await page.getByLabel("Body fat").fill("19");
   await page.getByRole("button", { name: "Save weigh-in" }).click();
 
-  await expect(page.getByText("Fat mass")).toBeVisible();
-  await expect(page.getByText("15.7", { exact: true })).toBeVisible(); // 82.4 kg × 19%
+  const hero = page.getByRole("region", { name: "Body composition" });
+  await expect(hero.getByText("82.4", { exact: true })).toBeVisible();
+  await expect(hero.getByText("19.0", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Log", exact: true }).click();
   await page.getByLabel("Weight").fill("82,0");

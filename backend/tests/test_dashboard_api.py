@@ -6,9 +6,9 @@ PROFILE = {"height_cm": 180, "sex": "male", "date_of_birth": "1990-05-01", "time
 def test_empty_dashboard(client, headers) -> None:
     client.put("/me/profile", json=PROFILE, headers=headers)
     body = client.get("/dashboard", headers=headers).json()
-    assert [m["metric"] for m in body["hero"]] == ["fat_mass_kg", "lean_mass_kg"]
-    assert [m["metric"] for m in body["cards"]] == ["body_fat_pct", "muscle_mass_kg"]
-    assert [m["metric"] for m in body["secondary"]] == ["weight_kg", "bmi", "waist_cm"]
+    assert [m["metric"] for m in body["hero"]] == ["weight_kg", "body_fat_pct"]
+    assert [m["metric"] for m in body["cards"]] == ["muscle_mass_kg", "waist_cm"]
+    assert [m["metric"] for m in body["secondary"]] == ["bmi"]
     assert all(m["latest"] is None and m["sparkline"] == [] for m in body["hero"])
     assert body["goals"] == []
     assert body["nudges"] == {
@@ -43,13 +43,14 @@ def test_populated_dashboard(client, headers) -> None:
     client.post("/goals", json={"metric": "body_fat_pct", "target_value": 15}, headers=headers)
     body = client.get("/dashboard", headers=headers).json()
 
-    fat = body["hero"][0]
-    assert 14 < fat["latest"] < 16
-    assert fat["change_30d"] < 0
-    assert fat["sparkline"]
-    assert body["cards"][0]["goal_direction"] == "down"
-    assert body["cards"][1]["goal_direction"] is None
-    assert body["secondary"][1]["latest"] == 24.7  # BMI 80 kg / 1.80 m
+    weight, body_fat = body["hero"]
+    assert weight["latest"] == 80
+    assert weight["sparkline"]
+    assert 18 < body_fat["latest"] < 19
+    assert body_fat["change_30d"] < 0
+    assert body_fat["goal_direction"] == "down"
+    assert body["cards"][0]["goal_direction"] is None
+    assert body["secondary"][0]["latest"] == 24.7  # BMI 80 kg / 1.80 m
     assert len(body["goals"]) == 1
     assert body["nudges"]["days_since_weigh_in"] == 2  # last entry Feb 27, today Mar 1
     assert body["nudges"]["days_since_photo"] is None

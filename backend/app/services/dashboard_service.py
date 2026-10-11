@@ -10,10 +10,10 @@ from app.services.goal_service import goal_with_projection
 from app.services.insight_service import check_in_for
 from app.services.series_service import UTC_ZONE, local_today, series_for
 
-HERO = ["fat_mass_kg", "lean_mass_kg"]
+HERO = ["weight_kg", "body_fat_pct"]
 NO_FOOD_NUDGE_HOUR = 14  # local time after which an empty food day earns a nudge
-CARDS = ["body_fat_pct", "muscle_mass_kg"]
-SECONDARY = ["weight_kg", "bmi", "waist_cm"]
+CARDS = ["muscle_mass_kg", "waist_cm"]
+SECONDARY = ["bmi"]
 
 
 def _r(value: float | None) -> float | None:

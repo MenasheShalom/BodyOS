@@ -33,13 +33,9 @@ const m = (
 });
 
 const empty: Dashboard = {
-  hero: [m("fat_mass_kg", "Fat mass", "kg", null), m("lean_mass_kg", "Lean mass", "kg", null)],
-  cards: [m("body_fat_pct", "Body fat", "%", null), m("muscle_mass_kg", "Muscle mass", "kg", null)],
-  secondary: [
-    m("weight_kg", "Weight", "kg", null),
-    m("bmi", "BMI", "", null),
-    m("waist_cm", "Waist", "cm", null),
-  ],
+  hero: [m("weight_kg", "Weight", "kg", null), m("body_fat_pct", "Body fat", "%", null)],
+  cards: [m("muscle_mass_kg", "Muscle mass", "kg", null), m("waist_cm", "Waist", "cm", null)],
+  secondary: [m("bmi", "BMI", "", null)],
   goals: [],
   nudges: { days_since_weigh_in: null, days_since_photo: null },
 };
@@ -65,21 +61,18 @@ describe("Home", () => {
       data: {
         ...empty,
         hero: [
-          m("fat_mass_kg", "Fat mass", "kg", 14.8, -0.6),
-          m("lean_mass_kg", "Lean mass", "kg", 65.2, 0.3),
+          m("weight_kg", "Weight", "kg", 80.4, -0.6),
+          m("body_fat_pct", "Body fat", "%", 18.2, 0.3),
         ],
-        secondary: [
-          m("weight_kg", "Weight", "kg", 80),
-          m("bmi", "BMI", "", 24.7),
-          m("waist_cm", "Waist", "cm", null),
-        ],
+        secondary: [m("bmi", "BMI", "", 24.7)],
         nudges: { days_since_weigh_in: 3, days_since_photo: 35 },
       },
     });
     renderHome();
-    expect(screen.getByText("14.8").parentElement).toHaveTextContent("14.8kg");
+    expect(screen.getByText("80.4").parentElement).toHaveTextContent("80.4kg");
+    expect(screen.getByText("18.2").parentElement).toHaveTextContent("18.2%");
     expect(screen.getByText("−0.6 kg")).toHaveAttribute("data-tone", "good");
-    expect(screen.getByText("+0.3 kg")).toHaveAttribute("data-tone", "good");
+    expect(screen.getByText(/^\+0\.3/)).toHaveAttribute("data-tone", "bad");
     expect(screen.getByText("Last weigh-in: 3 days ago")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Set a goal/ })).toHaveAttribute("href", "/goals");
     expect(screen.getByText("recent weigh-ins")).toBeInTheDocument();
@@ -114,7 +107,7 @@ describe("Home nutrition", () => {
       isPending: false,
       data: {
         ...empty,
-        hero: [m("fat_mass_kg", "Fat mass", "kg", 14.8), m("lean_mass_kg", "Lean mass", "kg", 65)],
+        hero: [m("weight_kg", "Weight", "kg", 80), m("body_fat_pct", "Body fat", "%", 18)],
         check_in: { week_start: "2026-03-01" },
         food_today: {
           energy_kcal: 1220,
@@ -138,7 +131,7 @@ describe("Home nutrition", () => {
       isPending: false,
       data: {
         ...empty,
-        hero: [m("fat_mass_kg", "Fat mass", "kg", 14.8), m("lean_mass_kg", "Lean mass", "kg", 65)],
+        hero: [m("weight_kg", "Weight", "kg", 80), m("body_fat_pct", "Body fat", "%", 18)],
         food_today: {
           energy_kcal: 800,
           protein_g: 40,
