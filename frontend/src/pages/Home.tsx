@@ -14,17 +14,17 @@ import { useDashboard } from "../lib/queries";
 import type { Dashboard } from "../lib/types";
 
 export const DEFAULT_DIRECTION: Record<string, Direction> = {
-  fat_mass_kg: "down",
-  lean_mass_kg: "up",
+  weight_kg: "down",
   body_fat_pct: "down",
   muscle_mass_kg: "up",
+  waist_cm: "down",
 };
 
 const MARKER: Record<string, string> = {
-  fat_mass_kg: "var(--color-series-1)",
-  lean_mass_kg: "var(--color-series-2)",
-  body_fat_pct: "var(--color-series-1)",
-  muscle_mass_kg: "var(--color-series-2)",
+  weight_kg: "var(--color-series-1)",
+  body_fat_pct: "var(--color-series-2)",
+  muscle_mass_kg: "var(--color-series-1)",
+  waist_cm: "var(--color-series-2)",
 };
 
 export function nudgeMessages(n: Dashboard["nudges"]): { text: string; tab: LogTab }[] {
