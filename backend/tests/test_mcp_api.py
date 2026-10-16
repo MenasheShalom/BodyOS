@@ -367,3 +367,39 @@ def test_create_custom_food(client, headers, user, db, sources) -> None:
         assert conn.execute(
             "select count(*) from foods where user_id = %s", (user,)
         ).fetchone() == (2,)
+
+
+def test_set_targets(client, headers, user) -> None:
+    assert client.put("/me/profile", json=PROFILE, headers=headers).status_code == 200
+    token = connect(client, headers)["access_token"]
+
+    # with no targets yet, protein and fat are needed to work out the carbs
+    first = call(client, token, "set_targets", energy_kcal=2000)
+    assert first["isError"] and "protein_g" in first["content"][0]["text"]
+    made = call(client, token, "set_targets", energy_kcal=2000, protein_g=150, fat_g=60)
+    assert made["structuredContent"] == {
+        "effective_from": "2026-03-01",
+        "energy_kcal": 2000,
+        "protein_g": 150,
+        "carbs_g": 215,  # (2000 - 600 - 540) / 4
+        "fat_g": 60,
+        "fiber_g": 30,
+        "origin": "manual",
+        "tdee_at_creation": None,
+    }
+
+    # only calories: protein, fat and fibre carry over, carbs absorb the change
+    lower = call(client, token, "set_targets", energy_kcal=1800)["structuredContent"]
+    assert (lower["protein_g"], lower["fat_g"], lower["carbs_g"]) == (150, 60, 165)
+    assert call(client, token, "get_targets")["structuredContent"]["result"]["energy_kcal"] == 1800
+    # same day replaces rather than adds
+    assert [t["energy_kcal"] for t in client.get("/nutrition/targets", headers=headers).json()] == [
+        1800
+    ]
+
+    later = call(client, token, "set_targets", energy_kcal=2100, starts="tomorrow")
+    assert later["structuredContent"]["effective_from"] == "2026-03-02"
+    assert call(client, token, "get_targets")["structuredContent"]["result"]["energy_kcal"] == 1800
+
+    silly = call(client, token, "set_targets", energy_kcal=300)
+    assert silly["isError"] is True

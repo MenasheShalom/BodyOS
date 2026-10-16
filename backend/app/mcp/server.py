@@ -5,7 +5,7 @@ the API's own endpoint functions, so it validates and behaves exactly like the a
 """
 
 from collections.abc import Callable
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Any, Literal, TypeVar
 from uuid import UUID
 
@@ -27,7 +27,14 @@ from app.db import Conn
 from app.food_sources import FoodSource
 from app.mcp.oauth import SCOPE, BodyOSOAuthProvider
 from app.metrics import METRICS
-from app.nutrition_schemas import CustomFoodIn, FoodLogIn, ImportIn, QuickAddIn, ServingIn
+from app.nutrition_schemas import (
+    CustomFoodIn,
+    FoodLogIn,
+    ImportIn,
+    QuickAddIn,
+    ServingIn,
+    TargetsIn,
+)
 from app.profiles import load_profile
 from app.routers import achievements, dashboard, food_log, foods, nutrition, series
 from app.routers.body_entries import create_entry
@@ -336,6 +343,46 @@ def build_mcp(deps: Deps, settings: Settings) -> MCPServer:
             return foods.create_food(body=body, user_id=u, conn=c)
 
         return _json(await run(create))
+
+    @server.tool(annotations=WRITE)
+    async def set_targets(
+        energy_kcal: int,
+        protein_g: int | None = None,
+        carbs_g: int | None = None,
+        fat_g: int | None = None,
+        fiber_g: int | None = None,
+        starts: Literal["today", "tomorrow"] = "today",
+    ) -> dict[str, Any]:
+        """Sets the daily calorie target, and optionally the macro targets, from today or
+        tomorrow. Protein, fat and fibre left out keep their current values; carbs left out
+        are recalculated to fill the calories that protein and fat don't cover. Earlier days
+        keep the targets they had. Confirm the numbers with the user before calling."""
+
+        def save(c: Conn, u: UUID) -> Any:
+            now = deps.now()
+            today = local_today(now, load_profile(c, u))
+            current = nutrition.current_targets(day=None, user_id=u, conn=c, now=now) or {}
+            protein = protein_g if protein_g is not None else current.get("protein_g")
+            fat = fat_g if fat_g is not None else current.get("fat_g")
+            if protein is None or fat is None:
+                raise ToolError("No targets yet: give protein_g and fat_g too")
+            carbs = carbs_g
+            if carbs is None:
+                carbs = max(0, round((energy_kcal - 4 * protein - 9 * fat) / 4))
+            fiber = fiber_g if fiber_g is not None else current.get("fiber_g", 30)
+            body = TargetsIn(
+                effective_from=today + timedelta(days=1 if starts == "tomorrow" else 0),
+                origin="manual",
+                tdee_at_creation=current.get("tdee_at_creation"),
+                energy_kcal=energy_kcal,
+                protein_g=protein,
+                carbs_g=carbs,
+                fat_g=fat,
+                fiber_g=fiber,
+            )
+            return nutrition.save_targets(body=body, user_id=u, conn=c, now=now)
+
+        return _json(await run(save))
 
     @server.tool(
         annotations=ToolAnnotations(
