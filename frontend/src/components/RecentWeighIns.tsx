@@ -2,7 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { WeighInForm } from "../forms/WeighInForm";
-import { formatDateTime, formatValue } from "../lib/format";
+import { formatChange, formatDateTime, formatValue } from "../lib/format";
 import { bodyEntries, useProfile } from "../lib/queries";
 import type { BodyEntry } from "../lib/types";
 import { Modal } from "./Modal";
@@ -40,8 +40,10 @@ export function RecentWeighIns() {
         </Link>
       </div>
       <ul className="divide-y divide-border overflow-hidden rounded-2xl bg-surface">
-        {recent.map((e) => {
+        {recent.map((e, i) => {
           const when = formatDateTime(e.measured_at);
+          // Entries are newest first, so the one after this is the weigh-in before it.
+          const previous = entries.data?.[i + 1];
           return (
             <li key={e.id}>
               <button
@@ -62,7 +64,14 @@ export function RecentWeighIns() {
                   </span>
                   <span className="block text-xs text-muted">{when}</span>
                 </span>
-                <ChevronRight size={18} className="text-muted" />
+                <span className="flex items-center gap-2">
+                  {previous && (
+                    <span className="tabular text-sm text-muted">
+                      {formatChange(e.weight_kg - previous.weight_kg, "kg")}
+                    </span>
+                  )}
+                  <ChevronRight size={18} className="text-muted" />
+                </span>
               </button>
             </li>
           );

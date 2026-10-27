@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Goal } from "../lib/types";
-import { goalStatusText } from "./GoalProgress";
+import { goalStatusText, remainingText } from "./GoalProgress";
 
 const goal = (state: Goal["projection"]["state"], projected_date: string | null = null): Goal => ({
   id: "g",
@@ -19,5 +19,13 @@ describe("goalStatusText", () => {
     expect(goalStatusText(goal("reached"))).toBe("Goal reached");
     expect(goalStatusText(goal("not_on_pace"))).toBe("Not on pace at current rate");
     expect(goalStatusText(goal("insufficient_data"))).toBe("Need more data");
+  });
+});
+
+describe("remainingText", () => {
+  it("says how far is left, in points for percentages", () => {
+    expect(remainingText(goal("on_track"), "%")).toBe("3.0 pts to go");
+    expect(remainingText({ ...goal("on_track"), metric: "weight_kg" }, "kg")).toBe("3.0 kg to go");
+    expect(remainingText(goal("reached"), "%")).toBeNull();
   });
 });

@@ -1,11 +1,20 @@
 import { Link } from "react-router";
-import { changeTone, type Direction, formatChange } from "../lib/format";
+import { bmiZone } from "../lib/bmi";
+import { changeTone, type Direction, formatChange, formatDay } from "../lib/format";
 import type { MetricSummary } from "../lib/types";
 import { Sparkline } from "./charts/Sparkline";
 
 const TONE_CLASS = { good: "text-good", bad: "text-bad", neutral: "text-muted" } as const;
 const SIZE_CLASS = { hero: "text-4xl", card: "text-2xl", mini: "text-lg" } as const;
 const UNIT_CLASS = { hero: "text-lg", card: "text-base", mini: "text-sm" } as const;
+
+/** The 30-day change, or the change since the first trend point while there's less history. */
+export function recentChange(s: MetricSummary): { value: number; period: string } | null {
+  if (s.change_30d != null) return { value: s.change_30d, period: "in 30 days" };
+  const first = s.sparkline[0];
+  if (s.latest == null || s.sparkline.length < 2 || first == null) return null;
+  return { value: s.latest - first.value, period: `since ${formatDay(first.date)}` };
+}
 
 type Props = {
   summary: MetricSummary;
@@ -23,11 +32,12 @@ export function StatCard({
   showSparkline = false,
   marker,
 }: Props) {
-  const tone = changeTone(summary.change_30d, summary.goal_direction ?? fallbackDirection);
+  const change = recentChange(summary);
+  const tone = changeTone(change?.value, summary.goal_direction ?? fallbackDirection);
   return (
     <Link
       to={`/trends?metric=${summary.metric}`}
-      className="block rounded-2xl bg-surface p-4 hover:bg-surface-2"
+      className="block rounded-2xl bg-surface p-4 transition-colors hover:bg-surface-2"
     >
       <p className="flex items-center gap-2 text-sm text-muted">
         {marker && (
@@ -43,12 +53,15 @@ export function StatCard({
           </span>
         )}
       </p>
-      {size !== "mini" && summary.change_30d != null && (
+      {summary.metric === "bmi" && summary.latest != null && (
+        <p className="mt-0.5 text-xs text-muted">{bmiZone(summary.latest)}</p>
+      )}
+      {size !== "mini" && change != null && (
         <p className="tabular mt-1 text-sm">
           <span className={TONE_CLASS[tone]} data-tone={tone}>
-            {formatChange(summary.change_30d, summary.unit)}
+            {formatChange(change.value, summary.unit)}
           </span>{" "}
-          <span className="text-muted">in 30 days</span>
+          <span className="text-muted">{change.period}</span>
         </p>
       )}
       {showSparkline && summary.sparkline.length > 1 && (
