@@ -9,6 +9,7 @@ import { ApiError, setTokenGetter, setUnauthorizedHandler } from "./lib/api";
 import { registerAppUpdates } from "./lib/pwa";
 import { handleUnauthorized } from "./lib/session";
 import { supabase } from "./lib/supabase";
+import { applyTheme, watchSystemTheme } from "./lib/theme";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,6 +24,8 @@ const queryClient = new QueryClient({
 setTokenGetter(async () => (await supabase.auth.getSession()).data.session?.access_token ?? null);
 setUnauthorizedHandler(() => void handleUnauthorized());
 registerAppUpdates();
+applyTheme();
+watchSystemTheme();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

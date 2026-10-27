@@ -12,6 +12,16 @@
       rel="stylesheet"
     />
     <title>BodyOS</title>
+    <script>
+      // Apply the light/dark choice before first paint (see src/lib/theme.ts).
+      try {
+        var t = localStorage.getItem("bodyos.theme");
+        if (t !== "light" && t !== "dark") {
+          t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
