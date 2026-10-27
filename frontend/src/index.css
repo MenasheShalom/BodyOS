@@ -21,23 +21,26 @@
   --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #10171d;
-    --color-surface: #18222a;
-    --color-surface-2: #213039;
-    --color-border: #2f414c;
-    --color-text: #e6edf1;
-    --color-muted: #93a4ae;
-    --color-accent: #5cc2b8;
-    --color-good: #5cc28c;
-    --color-bad: #ef7b70;
-    --color-series-1: #b98331;
-    --color-series-2: #5b8fd6;
-    --color-bronze: #d08a52;
-    --color-silver: #b4c2cc;
-    --color-gold: #e7bd45;
-  }
+/* data-theme is set from the Settings choice or the device (src/lib/theme.ts). */
+:root {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #10171d;
+  --color-surface: #18222a;
+  --color-surface-2: #213039;
+  --color-border: #2f414c;
+  --color-text: #e6edf1;
+  --color-muted: #93a4ae;
+  --color-accent: #5cc2b8;
+  --color-good: #5cc28c;
+  --color-bad: #ef7b70;
+  --color-series-1: #b98331;
+  --color-series-2: #5b8fd6;
+  --color-bronze: #d08a52;
+  --color-silver: #b4c2cc;
+  --color-gold: #e7bd45;
 }
 
 html,
