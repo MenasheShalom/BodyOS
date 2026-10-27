@@ -50,6 +50,10 @@ describe("RecentWeighIns", () => {
     expect(screen.getAllByRole("button", { name: /Edit weigh-in from/ })).toHaveLength(5);
     expect(screen.getByText("74.0 kg")).toBeInTheDocument();
     expect(screen.getByText("22.8% fat")).toBeInTheDocument();
+    // Change from the weigh-in before, including one that is no longer shown.
+    expect(screen.getAllByText("−0.2 kg")).toHaveLength(2);
+    expect(screen.getByText("+0.3 kg")).toBeInTheDocument();
+    expect(screen.getByText("−0.4 kg")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "See all" })).toHaveAttribute("href", "/history");
   });
 

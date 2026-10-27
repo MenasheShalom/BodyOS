@@ -1,4 +1,5 @@
-import { ChevronRight, Images } from "lucide-react";
+import { Camera, ChevronRight, Images, Plus, Scale, Utensils } from "lucide-react";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { type LogTab, useLogSheet } from "../components/AppLayout";
 import { ReportCard } from "../components/ai/ReportCard";
@@ -26,6 +27,30 @@ const MARKER: Record<string, string> = {
   muscle_mass_kg: "var(--color-series-1)",
   waist_cm: "var(--color-series-2)",
 };
+
+const NUDGE_ICON: Record<LogTab, typeof Scale> = {
+  food: Utensils,
+  "weigh-in": Scale,
+  measurements: Scale,
+  photo: Camera,
+};
+
+export function greeting(now: Date): string {
+  const h = now.getHours();
+  return h < 5 ? "Good evening" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
+
+function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  return (
+    <section aria-label={title} className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-sm font-medium text-muted">{title}</h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
 
 export function nudgeMessages(n: Dashboard["nudges"]): { text: string; tab: LogTab }[] {
   const out: { text: string; tab: LogTab }[] = [];
@@ -76,63 +101,96 @@ export function Home() {
     );
   }
 
+  const tracked = d.cards.filter((s) => s.latest != null);
+  const untracked = d.cards.filter((s) => s.latest == null);
+  const now = new Date();
+
   return (
     <div className="space-y-6">
-      {nudgeMessages(d.nudges).map((n) => (
-        <button
-          key={n.text}
-          type="button"
-          onClick={() => logSheet.open(n.tab)}
-          className="block w-full rounded-2xl border border-border px-4 py-3 text-left text-sm"
-        >
-          {n.text}
-        </button>
-      ))}
+      <header>
+        <p className="text-sm text-muted">
+          {now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+        </p>
+        <h1 className="readout mt-0.5 text-2xl">{greeting(now)}</h1>
+      </header>
+
+      {nudgeMessages(d.nudges).length > 0 && (
+        <div className="space-y-2">
+          {nudgeMessages(d.nudges).map((n) => {
+            const Icon = NUDGE_ICON[n.tab];
+            return (
+              <button
+                key={n.text}
+                type="button"
+                onClick={() => logSheet.open(n.tab)}
+                className="flex w-full items-center gap-3 rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-left text-sm transition-colors hover:bg-accent/15"
+              >
+                <Icon size={18} aria-hidden="true" className="shrink-0 text-accent" />
+                <span className="flex-1">{n.text}</span>
+                <ChevronRight size={18} aria-hidden="true" className="text-muted" />
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {d.check_in && <CheckInCard suggestion={d.check_in} />}
       <ReportCard />
 
-      <section aria-label="Body composition" className="grid grid-cols-2 gap-3">
-        {d.hero.map((s) => (
-          <StatCard
-            key={s.metric}
-            summary={s}
-            size="hero"
-            marker={MARKER[s.metric]}
-            fallbackDirection={DEFAULT_DIRECTION[s.metric]}
-          />
-        ))}
-      </section>
-
-      {d.food_today && <FoodTodayCard food={d.food_today} />}
-      <TrainingCard />
-
-      <section className="grid grid-cols-2 gap-3">
-        {d.cards.map((s) => (
-          <StatCard
-            key={s.metric}
-            summary={s}
-            showSparkline
-            marker={MARKER[s.metric]}
-            fallbackDirection={DEFAULT_DIRECTION[s.metric]}
-          />
-        ))}
-      </section>
-
-      <RecentWeighIns />
-
-      <Link
-        to="/photos"
-        className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 text-sm"
+      <Section
+        title="Body composition"
+        action={
+          <Link to="/trends" className="text-sm text-muted underline">
+            Trends
+          </Link>
+        }
       >
-        <span className="flex items-center gap-2">
-          <Images size={18} className="text-muted" /> Progress photos
-        </span>
-        <ChevronRight size={18} className="text-muted" />
-      </Link>
+        <div className="grid grid-cols-2 gap-3">
+          {d.hero.map((s) => (
+            <StatCard
+              key={s.metric}
+              summary={s}
+              size="hero"
+              showSparkline
+              marker={MARKER[s.metric]}
+              fallbackDirection={DEFAULT_DIRECTION[s.metric]}
+            />
+          ))}
+          {tracked.map((s) => (
+            <StatCard
+              key={s.metric}
+              summary={s}
+              showSparkline
+              marker={MARKER[s.metric]}
+              fallbackDirection={DEFAULT_DIRECTION[s.metric]}
+            />
+          ))}
+          {d.secondary.map((s) => (
+            <StatCard key={s.metric} summary={s} showSparkline />
+          ))}
+          {untracked.length > 0 && (
+            <button
+              type="button"
+              onClick={() =>
+                logSheet.open(untracked.some((s) => s.metric === "waist_cm") ? "measurements" : "weigh-in")
+              }
+              className="flex flex-col items-start justify-between gap-2 rounded-2xl border border-dashed border-border p-4 text-left text-sm transition-colors hover:bg-surface"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-2 text-accent">
+                <Plus size={16} aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block font-medium">Track more</span>
+                <span className="block text-muted">
+                  Add {untracked.map((s) => s.label.toLowerCase()).join(" and ")} to see them here
+                </span>
+              </span>
+            </button>
+          )}
+        </div>
+      </Section>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted">Goals</h2>
+      <Section title="Goals">
         {d.goals.length === 0 ? (
           <Link
             to="/goals"
@@ -143,13 +201,34 @@ export function Home() {
         ) : (
           d.goals.map((g) => <GoalProgress key={g.id} goal={g} />)
         )}
-      </section>
+      </Section>
 
-      <section className="grid grid-cols-3 gap-3">
-        {d.secondary.map((s) => (
-          <StatCard key={s.metric} summary={s} size="mini" />
-        ))}
-      </section>
+      {d.food_today && (
+        <Section title="Today">
+          <FoodTodayCard food={d.food_today} />
+          <TrainingCard />
+        </Section>
+      )}
+      {!d.food_today && <TrainingCard />}
+
+      <RecentWeighIns />
+
+      <Link
+        to="/photos"
+        className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 text-sm transition-colors hover:bg-surface-2"
+      >
+        <span className="flex items-center gap-2">
+          <Images size={18} className="text-muted" /> Progress photos
+        </span>
+        <span className="flex items-center gap-2 text-muted">
+          {d.nudges.days_since_photo != null && (
+            <span className="tabular">
+              {d.nudges.days_since_photo === 0 ? "Today" : `${d.nudges.days_since_photo}d ago`}
+            </span>
+          )}
+          <ChevronRight size={18} />
+        </span>
+      </Link>
     </div>
   );
 }

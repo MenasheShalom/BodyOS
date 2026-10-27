@@ -14,7 +14,7 @@ vi.mock("../components/nutrition/CheckInCard", () => ({
   CheckInCard: () => <p>check-in card</p>,
 }));
 
-import { Home, nudgeMessages } from "./Home";
+import { greeting, Home, nudgeMessages } from "./Home";
 
 const m = (
   metric: string,
@@ -76,10 +76,22 @@ describe("Home", () => {
     expect(screen.getByText("Last weigh-in: 3 days ago")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Set a goal/ })).toHaveAttribute("href", "/goals");
     expect(screen.getByText("recent weigh-ins")).toBeInTheDocument();
+    expect(screen.getByText("Healthy")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Track more/ })).toHaveTextContent(
+      "Add muscle mass and waist to see them here",
+    );
     expect(screen.getByRole("link", { name: /Progress photos/ })).toHaveAttribute(
       "href",
       "/photos",
     );
+  });
+});
+
+describe("greeting", () => {
+  it("follows the time of day", () => {
+    expect(greeting(new Date(2026, 0, 1, 8))).toBe("Good morning");
+    expect(greeting(new Date(2026, 0, 1, 14))).toBe("Good afternoon");
+    expect(greeting(new Date(2026, 0, 1, 21))).toBe("Good evening");
   });
 });
 
